@@ -84,9 +84,8 @@ def create_card_for_word(word, wiktionary_file="kaikki.org-dictionary-English.js
             'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
         ]
         
-        with open(output_file, 'w', newline='', encoding='utf-8') as f:
+        with open(output_file, 'a', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
             writer.writerow(card_data)
         
         print(f"Card saved to {output_file}")
@@ -124,9 +123,8 @@ def main():
                 'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
             ]
             
-            with open(args.output, 'w', newline='', encoding='utf-8') as f:
+            with open(args.output, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
                 writer.writerows(all_cards)
             
             print(f"Saved {len(all_cards)} cards to {args.output}")

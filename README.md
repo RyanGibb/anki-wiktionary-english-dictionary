@@ -22,6 +22,7 @@ Comprehensive English vocabulary flashcards generated from Wiktionary data, taki
 ## Usage
 
 ### Convert JSONL to CSV
+
 ```bash
 python wiktionary_to_anki.py input.jsonl -o output.csv
 ```
@@ -31,6 +32,7 @@ Options:
 - `--min-def-length N` - Minimum definition length (default: 10)
 
 ### Create Anki Package
+
 ```bash
 python create_anki_package.py input.csv -o output.apkg
 ```
@@ -38,18 +40,10 @@ python create_anki_package.py input.csv -o output.apkg
 The package includes the custom note type and can be directly imported into Anki.
 
 ### Add Individual Words
+
 ```bash
-# View word info
-python add_word.py "serendipity"
-
-# Save single word as CSV for Anki import
-python add_word.py "serendipity" -o serendipity.csv
-
-# Add multiple words to one CSV file
-python add_word.py "serendipity" "ephemeral" "ubiquitous" -o new-words.csv
+python add_word.py "serendipity" "ephemeral" "ubiquitous" -o words.csv
 ```
-
-Extract any words from Wiktionary data as Anki cards.
 
 ## Card Format
 
