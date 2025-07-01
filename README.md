@@ -2,7 +2,7 @@
 
 Comprehensive English vocabulary flashcards generated from Wiktionary data, taking the top 100k words according to Wikipedia frequency data.
 
-**[Download from AnkiWeb](https://ankiweb.net/shared/info/1033970499)**
+**[Download from AnkiWeb](https://ankiweb.net/shared/info/1140417632)**
 
 ## Quick Start
 
