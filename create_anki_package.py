@@ -179,8 +179,8 @@ def insert_note_type(cursor):
   {{#Forms}}<div class="forms"><strong>Forms:</strong> {{Forms}}</div>{{/Forms}}
   {{#Frequency}}<div class="frequency"><strong>Frequency:</strong> {{Frequency}}</div>{{/Frequency}}
 </div>''',
-                    "bqfmt": "",
-                    "bafmt": "",
+                    "bqfmt": "{{Front}}",
+                    "bafmt": "{{Back}}",
                     "did": None,
                     "bfont": "",
                     "bsize": 0
