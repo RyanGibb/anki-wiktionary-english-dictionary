@@ -36,6 +36,20 @@ python create_anki_package.py input.csv -o output.apkg
 
 The package includes the custom note type and can be directly imported into Anki.
 
+### Add Individual Words
+```bash
+# View word info
+python add_word.py "serendipity"
+
+# Save single word as CSV for Anki import
+python add_word.py "serendipity" -o serendipity.csv
+
+# Add multiple words to one CSV file
+python add_word.py "serendipity" "ephemeral" "ubiquitous" -o new-words.csv
+```
+
+Extract any words from Wiktionary data as Anki cards.
+
 ## Card Format
 
 Each card contains:
