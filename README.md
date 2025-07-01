@@ -1,8 +1,8 @@
 # Anki Wiktionary English Dictionary
 
-Convert Wiktionary data to Anki flashcards for English vocabulary study.
+Comprehensive English vocabulary flashcards generated from Wiktionary data, taking the top 100k words according to Wikipedia frequency data.
 
-**[Download from AnkiWeb](https://ankiweb.net/shared/info/)**
+**[Download from AnkiWeb](https://ankiweb.net/shared/info/1033970499)**
 
 ## Quick Start
 
