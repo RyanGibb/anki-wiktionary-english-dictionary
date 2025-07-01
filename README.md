@@ -7,7 +7,8 @@ Comprehensive English vocabulary flashcards generated from Wiktionary data, taki
 ## Quick Start
 
 1. Download English [dictionary data](https://kaikki.org/dictionary/English/) from [kaikki.org](https://kaikki.org)
-2. Download frequency data: `curl -o wikipedia-frequency-2023.txt https://raw.githubusercontent.com/IlyaSemenov/wikipedia-word-frequency/refs/heads/master/results/enwiki-2023-04-13.txt`
+2. Download frequency data from [IlyaSemenov/wikipedia-word-frequency](https://github.com/IlyaSemenov/wikipedia-word-frequency):
+   `curl -o wikipedia-frequency-2023.txt https://raw.githubusercontent.com/IlyaSemenov/wikipedia-word-frequency/refs/heads/master/results/enwiki-2023-04-13.txt`
 3. Convert to CSV: `python wiktionary_to_anki.py kaikki.org-dictionary-English.jsonl`
 4. Create Anki package: `python create_anki_package.py english.csv`
 5. Import `english.apkg` into Anki
