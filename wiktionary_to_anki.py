@@ -7,15 +7,23 @@ from pathlib import Path
 from urllib.parse import urlparse
 import argparse
 
-def load_frequency_data(frequency_file="wikipedia-frequency-2023.txt"):
+def load_frequency_data_for_words(word_set, frequency_file="frequency-all.txt"):
     frequency_dict = {}
     try:
         with open(frequency_file, 'r', encoding='utf-8') as f:
-            for rank, line in enumerate(f, 1):
-                parts = line.strip().split(' ', 1)
-                if len(parts) == 2:
-                    word = parts[0].lower()
-                    frequency_dict[word] = rank
+            for line in f:
+                if line.startswith('#'):
+                    continue
+                parts = line.strip().split()
+                if len(parts) >= 2:
+                    try:
+                        rank = int(parts[0])
+                        word = parts[1]
+                        if word in word_set or word.lower() in word_set:
+                            frequency_dict[word] = rank
+                            frequency_dict[word.lower()] = rank
+                    except ValueError:
+                        continue
     except FileNotFoundError:
         print(f"Warning: Frequency file {frequency_file} not found. Frequency data will be empty.")
     return frequency_dict
@@ -23,7 +31,7 @@ def load_frequency_data(frequency_file="wikipedia-frequency-2023.txt"):
 def get_frequency_rank(word, frequency_dict):
     if not frequency_dict:
         return ""
-    rank = frequency_dict.get(word.lower())
+    rank = frequency_dict.get(word) or frequency_dict.get(word.lower())
     if rank:
         return str(rank)
     return ""
@@ -254,7 +262,6 @@ def main():
     ]
     processed_count = 0
     entries_by_word = {}
-    frequency_dict = load_frequency_data()
     
     print(f"Processing {args.input_file}...")
     print(f"Output will be written to {args.output}")
@@ -288,6 +295,9 @@ def main():
     print("Combining entries by word...")
     combined_cards = combine_entries(entries_by_word)
     
+    print("Loading frequency data for found words...")
+    frequency_dict = load_frequency_data_for_words(set(combined_cards.keys()))
+    
     print("Adding frequency data...")
     for word, card_data in combined_cards.items():
         card_data['Frequency'] = get_frequency_rank(word, frequency_dict)
@@ -300,7 +310,7 @@ def main():
             if freq is not None:  # Only include words with actual frequency data
                 sorted_cards.append((freq, word, card_data))
     sorted_cards.sort(key=lambda x: x[0])
-    max_cards = 100000
+    max_cards = 1000000
     top_cards = sorted_cards[:max_cards]
     print(f"Selected top {len(top_cards)} cards by frequency")
 

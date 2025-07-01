@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 import sys
 
-from wiktionary_to_anki import process_entry, combine_entries, load_frequency_data, get_frequency_rank
+from wiktionary_to_anki import process_entry, combine_entries, load_frequency_data_for_words, get_frequency_rank
 
 def find_words_in_wiktionary(words, wiktionary_file):
     target_words = {word.lower(): word for word in words}
@@ -37,7 +37,7 @@ def find_words_in_wiktionary(words, wiktionary_file):
 
 def process_words_to_cards(words, wiktionary_file="kaikki.org-dictionary-English.jsonl"):
     all_entries = find_words_in_wiktionary(words, wiktionary_file)
-    frequency_dict = load_frequency_data()
+    frequency_dict = load_frequency_data_for_words(set(words))
     cards = []
     
     for word in words:

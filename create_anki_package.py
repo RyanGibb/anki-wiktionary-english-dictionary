@@ -163,7 +163,7 @@ def insert_note_type(cursor):
                     "name": "Card 1",
                     "ord": 0,
                     "qfmt": '''<div class="word-front">
-  <div class="word">{{Front}}</div>
+  <a class="word" href="https://en.wiktionary.org/wiki/{{Front}}#English">{{Front}}</a>
   {{#IPA}}<div class="ipa">{{IPA}}</div>{{/IPA}}
   {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
   {{#Hyphenation}}<div class="hyphenation">{{Hyphenation}}</div>{{/Hyphenation}}
