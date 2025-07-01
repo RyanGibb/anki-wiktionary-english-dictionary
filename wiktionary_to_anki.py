@@ -238,7 +238,7 @@ def main():
                        help='Output CSV file for Anki import')
     parser.add_argument('-l', '--limit', type=int, 
                        help='Limit number of entries to process (for testing)')
-    parser.add_argument('--min-def-length', type=int, default=10,
+    parser.add_argument('--min-def-length', type=int, default=0,
                        help='Minimum definition length to include')
     
     args = parser.parse_args()
@@ -294,15 +294,25 @@ def main():
     for word, card_data in combined_cards.items():
         card_data['Frequency'] = get_frequency_rank(word, frequency_dict)
 
+    print("Sorting by frequency...")
+    sorted_cards = []
+    for word, card_data in combined_cards.items():
+        if len(card_data['Back']) >= args.min_def_length:
+            freq = frequency_dict.get(word.lower(), 999999)
+            sorted_cards.append((freq, word, card_data))
+    sorted_cards.sort(key=lambda x: x[0])
+    max_cards = 1000000
+    top_cards = sorted_cards[:max_cards]
+    print(f"Selected top {len(top_cards)} cards by frequency")
+
     written_count = 0
     with open(output_path, 'w', newline='', encoding='utf-8') as outfile:
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
         
-        for word, card_data in combined_cards.items():
-            if len(card_data['Back']) >= args.min_def_length:
-                writer.writerow(card_data)
-                written_count += 1
+        for freq, word, card_data in top_cards:
+            writer.writerow(card_data)
+            written_count += 1
     
     print(f"\nCompleted!")
     print(f"Processed: {processed_count} entries")

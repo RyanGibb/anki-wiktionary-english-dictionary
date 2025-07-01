@@ -1,6 +1,6 @@
 # Anki Wiktionary English Dictionary
 
-Convert Wiktionary data to Anki flashcards for English vocabulary study. Generates 1.3M+ word entries.
+Convert Wiktionary data to Anki flashcards for English vocabulary study.
 
 **[Download from AnkiWeb](https://ankiweb.net/shared/info/)**
 
@@ -48,6 +48,11 @@ Each card contains:
 - **Forms**: Plural, past tense, etc.
 - **Hyphenation**: Syllable breaks
 - **Frequency**: Wikipedia ranking
+
+## Limitations
+
+The Wikipedia frequency list is case-insensitive, so "IN" (Indiana) ranks the same as "in".
+The [Google Books Ngram Viewer Exports](https://storage.googleapis.com/books/ngrams/books/datasetsv3.html) would provide a better case-sensitive ranking, but hyphens are treated as non-word characters so to support words like self-control we'd need to download the whole dataset, which I don't have the bandwidth for at the moment.
 
 ## Requirements
 
