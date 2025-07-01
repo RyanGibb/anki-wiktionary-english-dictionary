@@ -319,7 +319,8 @@ def main():
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
         
-        for freq, word, card_data in top_cards:
+        for rank, (freq, word, card_data) in enumerate(top_cards, 1):
+            card_data['Frequency'] = str(rank)
             writer.writerow(card_data)
             written_count += 1
     
