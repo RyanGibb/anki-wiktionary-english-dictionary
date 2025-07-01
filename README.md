@@ -52,7 +52,7 @@ Each card contains:
 - **Code**: MIT License
 - **Generated deck content**:
   - Wiktionary data: Dual-licensed under CC BY-SA 4.0 and GFDL
-  - Google Books Ngram frequency data: Creative Commons Attribution 3.0 Unported License
+  - Google Books Ngram frequency data: CC BY 3.0
 
 ---
 
