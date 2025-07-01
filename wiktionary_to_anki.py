@@ -7,6 +7,27 @@ from pathlib import Path
 from urllib.parse import urlparse
 import argparse
 
+def load_frequency_data(frequency_file="wikipedia-frequency-2023.txt"):
+    frequency_dict = {}
+    try:
+        with open(frequency_file, 'r', encoding='utf-8') as f:
+            for rank, line in enumerate(f, 1):
+                parts = line.strip().split(' ', 1)
+                if len(parts) == 2:
+                    word = parts[0].lower()
+                    frequency_dict[word] = rank
+    except FileNotFoundError:
+        print(f"Warning: Frequency file {frequency_file} not found. Frequency data will be empty.")
+    return frequency_dict
+
+def get_frequency_rank(word, frequency_dict):
+    if not frequency_dict:
+        return ""
+    rank = frequency_dict.get(word.lower())
+    if rank and rank <= 100000:
+        return str(rank)
+    return ""
+
 def clean_html(text):
     if not text:
         return ""
@@ -149,7 +170,8 @@ def process_entry(entry):
         'Forms': forms,
         'Translations': translations,
         'Hyphenation': hyphen_text,
-        'Tags': f"wiktionary {pos}" if pos else "wiktionary"
+        'Tags': f"wiktionary {pos}" if pos else "wiktionary",
+        'Frequency': ''
     }
 
 def combine_entries(entries_dict):
@@ -170,7 +192,8 @@ def combine_entries(entries_dict):
             'Forms': '',
             'Translations': '',
             'Hyphenation': first_entry.get('Hyphenation', ''),
-            'Tags': 'wiktionary'
+            'Tags': 'wiktionary',
+            'Frequency': ''
         }
         
         pos_definitions = {}
@@ -229,11 +252,11 @@ def main():
     
     fieldnames = [
         'Front', 'Back', 'Part of Speech', 'IPA', 'Audio', 
-        'Etymology', 'Forms', 'Translations', 'Hyphenation', 'Tags'
+        'Etymology', 'Forms', 'Translations', 'Hyphenation', 'Tags', 'Frequency'
     ]
-    
     processed_count = 0
     entries_by_word = {}
+    frequency_dict = load_frequency_data()
     
     print(f"Processing {args.input_file}...")
     print(f"Output will be written to {args.output}")
@@ -267,6 +290,10 @@ def main():
     print("Combining entries by word...")
     combined_cards = combine_entries(entries_by_word)
     
+    print("Adding frequency data...")
+    for word, card_data in combined_cards.items():
+        card_data['Frequency'] = get_frequency_rank(word, frequency_dict)
+
     written_count = 0
     with open(output_path, 'w', newline='', encoding='utf-8') as outfile:
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)

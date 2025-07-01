@@ -155,9 +155,10 @@ def insert_note_type(cursor):
                 {"name": "Forms", "ord": 6, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Translations", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Hyphenation", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Tags", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
+                {"name": "Tags", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Frequency", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
             ],
-            "sortf": 0,
+            "sortf": 10,
             "tmpls": [
                 {
                     "name": "Card 1",
@@ -177,6 +178,7 @@ def insert_note_type(cursor):
   {{#Part of Speech}}<div class="pos"><strong>Part of Speech:</strong> {{Part of Speech}}</div>{{/Part of Speech}}
   {{#Etymology}}<div class="etymology"><strong>Etymology:</strong> {{Etymology}}</div>{{/Etymology}}
   {{#Forms}}<div class="forms"><strong>Forms:</strong> {{Forms}}</div>{{/Forms}}
+  {{#Frequency}}<div class="frequency"><strong>Frequency:</strong> {{Frequency}}</div>{{/Frequency}}
 </div>''',
                     "bqfmt": "",
                     "bafmt": "",
@@ -226,7 +228,7 @@ def insert_note_type(cursor):
   margin-bottom: 15px;
 }
 
-.pos, .etymology, .forms {
+.pos, .etymology, .forms, .frequency {
   margin: 8px 0;
   font-size: 0.9em;
   opacity: 0.85;
@@ -358,7 +360,8 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
                 row.get('Forms', ''),
                 row.get('Translations', ''),
                 row.get('Hyphenation', ''),
-                row.get('Tags', '')
+                row.get('Tags', ''),
+                row.get('Frequency', '')
             ])
             
             cursor.execute('''
