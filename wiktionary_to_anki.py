@@ -24,7 +24,7 @@ def get_frequency_rank(word, frequency_dict):
     if not frequency_dict:
         return ""
     rank = frequency_dict.get(word.lower())
-    if rank and rank <= 100000:
+    if rank:
         return str(rank)
     return ""
 
@@ -298,10 +298,11 @@ def main():
     sorted_cards = []
     for word, card_data in combined_cards.items():
         if len(card_data['Back']) >= args.min_def_length:
-            freq = frequency_dict.get(word.lower(), 999999)
-            sorted_cards.append((freq, word, card_data))
+            freq = frequency_dict.get(word.lower())
+            if freq is not None:  # Only include words with actual frequency data
+                sorted_cards.append((freq, word, card_data))
     sorted_cards.sort(key=lambda x: x[0])
-    max_cards = 1000000
+    max_cards = 100000
     top_cards = sorted_cards[:max_cards]
     print(f"Selected top {len(top_cards)} cards by frequency")
 
