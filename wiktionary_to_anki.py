@@ -61,7 +61,7 @@ def format_pronunciation(sounds):
             if 'audio' in sound:
                 label = sound['audio'].replace('.ogg', '')
             
-            audio_elements.append(f'<div><strong>{label}:</strong> <audio controls><source src="{sound["mp3_url"]}" type="audio/mpeg">🔊 <a href="{sound["mp3_url"]}" target="_blank">Audio</a></audio></div>')
+            audio_elements.append(f'<div><strong>{label}:</strong><br> <audio controls><source src="{sound["mp3_url"]}" type="audio/mpeg">🔊 <a href="{sound["mp3_url"]}" target="_blank">Audio</a></audio></div>')
     
     ipa_text = '<br>'.join(ipa_list)
     audio_text = ''.join(audio_elements)
@@ -168,7 +168,6 @@ def process_entry(entry):
         'Audio': audio,
         'Etymology': etymology,
         'Forms': forms,
-        'Translations': translations,
         'Hyphenation': hyphen_text,
         'Tags': f"wiktionary {pos}" if pos else "wiktionary",
         'Frequency': ''
@@ -190,7 +189,6 @@ def combine_entries(entries_dict):
             'Audio': first_entry.get('Audio', ''),
             'Etymology': first_entry.get('Etymology', ''),
             'Forms': '',
-            'Translations': '',
             'Hyphenation': first_entry.get('Hyphenation', ''),
             'Tags': 'wiktionary',
             'Frequency': ''
@@ -252,7 +250,7 @@ def main():
     
     fieldnames = [
         'Front', 'Back', 'Part of Speech', 'IPA', 'Audio', 
-        'Etymology', 'Forms', 'Translations', 'Hyphenation', 'Tags', 'Frequency'
+        'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
     ]
     processed_count = 0
     entries_by_word = {}

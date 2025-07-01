@@ -81,7 +81,7 @@ def create_card_for_word(word, wiktionary_file="kaikki.org-dictionary-English.js
     if output_file:
         fieldnames = [
             'Front', 'Back', 'Part of Speech', 'IPA', 'Audio', 
-            'Etymology', 'Forms', 'Translations', 'Hyphenation', 'Tags', 'Frequency'
+            'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
         ]
         
         with open(output_file, 'w', newline='', encoding='utf-8') as f:
@@ -121,7 +121,7 @@ def main():
         if all_cards:
             fieldnames = [
                 'Front', 'Back', 'Part of Speech', 'IPA', 'Audio', 
-                'Etymology', 'Forms', 'Translations', 'Hyphenation', 'Tags', 'Frequency'
+                'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
             ]
             
             with open(args.output, 'w', newline='', encoding='utf-8') as f:

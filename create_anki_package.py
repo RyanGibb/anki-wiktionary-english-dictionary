@@ -153,7 +153,6 @@ def insert_note_type(cursor):
                 {"name": "Audio", "ord": 4, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Etymology", "ord": 5, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Forms", "ord": 6, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Translations", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Hyphenation", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Tags", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Frequency", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
@@ -189,27 +188,19 @@ def insert_note_type(cursor):
             ],
             "mod": int(time.time()),
             "css": '''.card {
-  font-family: inherit;
-  font-size: 18px;
   text-align: left;
-  line-height: 1.4;
 }
 
 .word-front {
   text-align: center;
-  margin-bottom: 20px;
 }
 
 .word {
   font-size: 2em;
   font-weight: bold;
-  margin-bottom: 10px;
 }
 
 .ipa {
-  font-size: 1.1em;
-  font-family: "Doulos SIL", "Charis SIL", serif;
-  margin-bottom: 5px;
   opacity: 0.8;
 }
 
@@ -217,15 +208,6 @@ def insert_note_type(cursor):
   font-size: 1em;
   font-style: italic;
   opacity: 0.7;
-}
-
-.word-back {
-  margin-top: 20px;
-}
-
-.definitions {
-  font-size: 1em;
-  margin-bottom: 15px;
 }
 
 .pos, .etymology, .forms, .frequency {
@@ -358,7 +340,6 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
                 row.get('Audio', ''),
                 row.get('Etymology', ''),
                 row.get('Forms', ''),
-                row.get('Translations', ''),
                 row.get('Hyphenation', ''),
                 row.get('Tags', ''),
                 row.get('Frequency', '')
