@@ -27,40 +27,40 @@ def generate_stroke_order(word):
     return ''.join(img_tags)
 
 def create_anki_package(csv_file, output_file="chinese.apkg"):
-    
+
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        
+
         db_path = temp_path / "collection.anki2"
         create_anki_database(db_path, csv_file)
-        
+
         media_path = temp_path / "media"
         media_path.write_text("{}")
-        
+
         with zipfile.ZipFile(output_file, 'w', zipfile.ZIP_DEFLATED) as apkg:
             apkg.write(db_path, "collection.anki2")
             apkg.write(media_path, "media")
-    
+
     print(f"Created Anki package: {output_file}")
 
 def create_anki_database(db_path, csv_file):
-    
+
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-    
+
     create_anki_schema(cursor)
-    
+
     note_type_id = insert_note_type(cursor)
-    
+
     deck_id = insert_deck(cursor)
-    
+
     insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id)
-    
+
     conn.commit()
     conn.close()
 
 def create_anki_schema(cursor):
-    
+
     cursor.execute('''
         CREATE TABLE col (
             id INTEGER PRIMARY KEY,
@@ -78,7 +78,7 @@ def create_anki_schema(cursor):
             tags TEXT NOT NULL
         )
     ''')
-    
+
     cursor.execute('''
         CREATE TABLE notes (
             id INTEGER PRIMARY KEY,
@@ -94,7 +94,7 @@ def create_anki_schema(cursor):
             data TEXT NOT NULL
         )
     ''')
-    
+
     cursor.execute('''
         CREATE TABLE cards (
             id INTEGER PRIMARY KEY,
@@ -117,7 +117,7 @@ def create_anki_schema(cursor):
             data TEXT NOT NULL
         )
     ''')
-    
+
     cursor.execute('''
         CREATE TABLE graves (
             usn INTEGER NOT NULL,
@@ -125,7 +125,7 @@ def create_anki_schema(cursor):
             type INTEGER NOT NULL
         )
     ''')
-    
+
     cursor.execute('''
         CREATE TABLE revlog (
             id INTEGER PRIMARY KEY,
@@ -139,7 +139,7 @@ def create_anki_schema(cursor):
             type INTEGER NOT NULL
         )
     ''')
-    
+
     cursor.execute('CREATE INDEX ix_notes_usn ON notes (usn)')
     cursor.execute('CREATE INDEX ix_cards_usn ON cards (usn)')
     cursor.execute('CREATE INDEX ix_notes_csum ON notes (csum)')
@@ -150,9 +150,9 @@ def create_anki_schema(cursor):
     cursor.execute('CREATE INDEX ix_revlog_cid ON revlog (cid)')
 
 def insert_note_type(cursor):
-    
+
     note_type_id = int(time.time() * 1000)
-    
+
     note_type = {
         str(note_type_id): {
             "id": note_type_id,
@@ -244,7 +244,7 @@ hr {
 }'''
         }
     }
-    
+
     conf = {
         "nextPos": 1,
         "estTimes": True,
@@ -261,7 +261,7 @@ hr {
         "collapseTime": 1200,
         "newDeck": 1
     }
-    
+
     decks = {
         "1": {
             "desc": "Chinese dictionary from Wiktionary",
@@ -280,7 +280,7 @@ hr {
             "mod": int(time.time())
         }
     }
-    
+
     dconf = {
         "1": {
             "name": "Chinese",
@@ -318,7 +318,7 @@ hr {
             "autoplay": True
         }
     }
-    
+
     cursor.execute('''
         INSERT INTO col (id, crt, mod, scm, ver, dty, usn, ls, conf, models, decks, dconf, tags)
         VALUES (1, ?, ?, ?, 11, 0, 0, 0, ?, ?, ?, ?, '{}')
@@ -331,7 +331,7 @@ hr {
         json.dumps(decks),
         json.dumps(dconf)
     ))
-    
+
     return note_type_id
 
 def insert_deck(cursor):
@@ -339,19 +339,19 @@ def insert_deck(cursor):
 
 def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
     import csv
-    
+
     if not os.path.exists(csv_file):
         print(f"Warning: CSV file {csv_file} not found. Creating empty package.")
         return
-    
+
     with open(csv_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        
+
         for i, row in enumerate(reader):
-                
+
             note_id = int(time.time() * 1000) + i
             card_id = note_id + 1000000
-            
+
             front_word = row.get('Front', '')
             stroke_order = generate_stroke_order(front_word)
             fields = '\x1f'.join([
@@ -367,7 +367,7 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
                 row.get('Tags', ''),
                 row.get('Frequency', '')
             ])
-            
+
             cursor.execute('''
                 INSERT INTO notes (id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data)
                 VALUES (?, ?, ?, ?, 0, '', ?, ?, 0, 0, '')
@@ -379,7 +379,7 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
                 fields,
                 row.get('Front', '')[:64]
             ))
-            
+
             cursor.execute('''
                 INSERT INTO cards (id, nid, did, ord, mod, usn, type, queue, due, ivl, factor, reps, lapses, left, odue, odid, flags, data)
                 VALUES (?, ?, ?, 0, ?, -1, 0, -1, ?, 0, 0, 0, 0, 0, 0, 0, 0, '')
@@ -393,12 +393,12 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
 
 if __name__ == '__main__':
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='Create Anki package with Wiktionary note type')
     parser.add_argument('csv_file', help='CSV file with card data')
-    parser.add_argument('-o', '--output', default='chinese.apkg', 
+    parser.add_argument('-o', '--output', default='chinese.apkg',
                        help='Output .apkg file')
-    
+
     args = parser.parse_args()
-    
+
     create_anki_package(args.csv_file, args.output)
