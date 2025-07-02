@@ -143,8 +143,14 @@ def extract_translations(translations, max_translations=10):
     return result
 
 def is_english_word(word):
-    """Check if a word contains only English letters"""
-    return bool(re.match(r'^[a-zA-Z]+$', word))
+    """Check if a word is primarily English letters, numbers, or punctuation"""
+    # Skip if contains any non-Chinese characters (except traditional Chinese)
+    if re.search(r'[a-zA-Z0-9\.\-\+\%\~\(\)\[\]\{\}\!\@\#\$\^\&\*\_\=\|\\\:\;\"\'\<\>\?\,]', word):
+        return True
+    # Skip single characters that are not in CJK ranges
+    if len(word) == 1 and not re.match(r'[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]', word):
+        return True
+    return False
 
 def process_entry(entry):
     word = entry.get('word', '')
@@ -276,11 +282,11 @@ def main():
     processed_count = 0
     entries_by_word = {}
     redirect_map = {}
+    pending_redirects = {}  # word -> list of redirect sources
     
     print(f"Processing {args.input_file}...")
     print(f"Output will be written to {args.output}")
     
-    # First pass: collect all entries and build redirect map
     with open(input_path, 'r', encoding='utf-8') as infile:
         for line_num, line in enumerate(infile, 1):
             if args.limit and processed_count >= args.limit:
@@ -293,52 +299,44 @@ def main():
                 if processed_count % 10000 == 0:
                     print(f"Processed {processed_count} entries...")
                 
-                # Track redirects separately
-                if entry.get('pos') == 'soft-redirect':
-                    word = entry.get('word', '')
-                    redirects = entry.get('redirects', [])
-                    if word and redirects:
-                        redirect_map[word] = redirects[0]  # Use first redirect target
+                word = entry.get('word', '')
+                if not word:
+                    continue
                 
+                # Handle redirects
+                if entry.get('pos') == 'soft-redirect':
+                    redirects = entry.get('redirects', [])
+                    if redirects:
+                        target = redirects[0]
+                        redirect_map[word] = target
+                        # Track which words redirect to this target
+                        if target not in pending_redirects:
+                            pending_redirects[target] = []
+                        pending_redirects[target].append(word)
+                    continue
+                
+                # Process regular entry
                 card_data = process_entry(entry)
                 if card_data:
-                    word = card_data['Front']
+                    # Add the main entry
                     if word not in entries_by_word:
                         entries_by_word[word] = []
                     entries_by_word[word].append(card_data)
+                    
+                    # Check if any words redirect to this one
+                    if word in pending_redirects:
+                        for redirect_word in pending_redirects[word]:
+                            if redirect_word not in entries_by_word and not is_english_word(redirect_word):
+                                # Create entry for redirect word using this definition
+                                redirect_card = card_data.copy()
+                                redirect_card['Front'] = redirect_word
+                                entries_by_word[redirect_word] = [redirect_card]
                 
             except json.JSONDecodeError as e:
                 print(f"Error parsing line {line_num}: {e}")
                 continue
             except Exception as e:
                 print(f"Error processing entry on line {line_num}: {e}")
-                continue
-    
-    print("Resolving redirects...")
-    # Second pass: resolve redirects
-    with open(input_path, 'r', encoding='utf-8') as infile:
-        for line_num, line in enumerate(infile, 1):
-            try:
-                entry = json.loads(line.strip())
-                word = entry.get('word', '')
-                
-                # Check if this word is a redirect target
-                if word in redirect_map.values():
-                    # Find all words that redirect to this one
-                    for redirect_word, target in redirect_map.items():
-                        if target == word and redirect_word not in entries_by_word:
-                            # Create entry for redirect word using target's definition
-                            card_data = process_entry(entry)
-                            if card_data:
-                                # Override the front with the redirect word
-                                card_data['Front'] = redirect_word
-                                if redirect_word not in entries_by_word:
-                                    entries_by_word[redirect_word] = []
-                                entries_by_word[redirect_word].append(card_data)
-                
-            except json.JSONDecodeError:
-                continue
-            except Exception:
                 continue
     
     print("Combining entries by word...")
