@@ -35,7 +35,7 @@ def find_words_in_wiktionary(words, wiktionary_file):
     
     return found_entries
 
-def process_words_to_cards(words, wiktionary_file="kaikki.org-dictionary-English.jsonl"):
+def process_words_to_cards(words, wiktionary_file="kaikki.org-dictionary-Chinese.jsonl"):
     all_entries = find_words_in_wiktionary(words, wiktionary_file)
     frequency_dict = load_frequency_data_for_words(set(words))
     cards = []
@@ -70,7 +70,7 @@ def process_words_to_cards(words, wiktionary_file="kaikki.org-dictionary-English
     
     return cards
 
-def create_card_for_word(word, wiktionary_file="kaikki.org-dictionary-English.jsonl", output_file=None):
+def create_card_for_word(word, wiktionary_file="kaikki.org-dictionary-Chinese.jsonl", output_file=None):
     cards = process_words_to_cards([word], wiktionary_file)
     
     if not cards:
@@ -103,7 +103,7 @@ def create_card_for_word(word, wiktionary_file="kaikki.org-dictionary-English.js
 def main():
     parser = argparse.ArgumentParser(description='Extract words from Wiktionary as Anki cards')
     parser.add_argument('words', nargs='+', help='Word(s) to extract')
-    parser.add_argument('-i', '--input', default='kaikki.org-dictionary-English.jsonl',
+    parser.add_argument('-i', '--input', default='kaikki.org-dictionary-Chinese.jsonl',
                        help='Wiktionary JSONL file')
     parser.add_argument('-o', '--output', 
                        help='Output CSV file (if not specified, prints to stdout)')

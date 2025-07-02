@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 import time
 
-def create_anki_package(csv_file, output_file="english.apkg"):
+def create_anki_package(csv_file, output_file="chinese.apkg"):
     
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -139,7 +139,7 @@ def insert_note_type(cursor):
         str(note_type_id): {
             "id": note_type_id,
             "vers": [],
-            "name": "English",
+            "name": "Chinese",
             "tags": [],
             "did": 1,
             "usn": -1,
@@ -163,7 +163,7 @@ def insert_note_type(cursor):
                     "name": "Card 1",
                     "ord": 0,
                     "qfmt": '''<div class="word-front">
-  <a class="word" href="https://en.wiktionary.org/wiki/{{Front}}#English">{{Front}}</a>
+  <a class="word" href="https://en.wiktionary.org/wiki/{{Front}}#Chinese">{{Front}}</a>
   {{#IPA}}<div class="ipa">{{IPA}}</div>{{/IPA}}
   {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
   {{#Hyphenation}}<div class="hyphenation">{{Hyphenation}}</div>{{/Hyphenation}}
@@ -244,8 +244,8 @@ hr {
     
     decks = {
         "1": {
-            "desc": "English dictionary from Wiktionary",
-            "name": "English",
+            "desc": "Chinese dictionary from Wiktionary",
+            "name": "Chinese",
             "extendRev": 50,
             "usn": 0,
             "collapsed": False,
@@ -263,7 +263,7 @@ hr {
     
     dconf = {
         "1": {
-            "name": "English",
+            "name": "Chinese",
             "replayq": True,
             "lapse": {
                 "leechFails": 8,
@@ -373,7 +373,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Create Anki package with Wiktionary note type')
     parser.add_argument('csv_file', help='CSV file with card data')
-    parser.add_argument('-o', '--output', default='english.apkg', 
+    parser.add_argument('-o', '--output', default='chinese.apkg', 
                        help='Output .apkg file')
     
     args = parser.parse_args()

@@ -10,7 +10,7 @@ Google Books Ngram frequency data is used to rank words and select the top `n`.
 1. Download English [dictionary data](https://kaikki.org/dictionary/English/) from [kaikki.org](https://kaikki.org)
 2. Download frequency data from [hackerb9/gwordlist](https://github.com/hackerb9/gwordlist):
    `curl -o frequency-all.txt.gz https://raw.githubusercontent.com/hackerb9/gwordlist/master/frequency-all.txt.gz && gunzip frequency-all.txt.gz`
-3. Convert to CSV: `python wiktionary_to_anki.py kaikki.org-dictionary-English.jsonl`
+3. Convert to CSV: `python wiktionary_to_anki.py kaikki.org-dictionary-Chinese.jsonl`
 4. Create Anki package: `python create_anki_package.py english.csv`
 5. Import `english.apkg` into Anki
 

@@ -142,20 +142,33 @@ def extract_translations(translations, max_translations=10):
     
     return result
 
+def is_english_word(word):
+    """Check if a word contains only English letters"""
+    return bool(re.match(r'^[a-zA-Z]+$', word))
+
 def process_entry(entry):
     word = entry.get('word', '')
     if not word:
         return None
     
     lang = entry.get('lang', '')
-    if lang != 'English':
+    if lang != 'Chinese':
+        return None
+    
+    # Filter out English words used in Chinese
+    if is_english_word(word):
         return None
     
     pos = entry.get('pos', '')
-    senses = entry.get('senses', [])
-    definitions = format_definitions(senses)
-    if not definitions:
+    
+    # Skip soft-redirect entries - they will be resolved later
+    if pos == 'soft-redirect':
         return None
+    else:
+        senses = entry.get('senses', [])
+        definitions = format_definitions(senses)
+        if not definitions:
+            return None
     sounds = entry.get('sounds', [])
     ipa, audio = format_pronunciation(sounds)
     
@@ -240,7 +253,7 @@ def combine_entries(entries_dict):
 def main():
     parser = argparse.ArgumentParser(description='Convert Wiktionary JSONL to Anki CSV')
     parser.add_argument('input_file', help='Input JSONL file from kaikki.org')
-    parser.add_argument('-o', '--output', default='english.csv', 
+    parser.add_argument('-o', '--output', default='chinese.csv', 
                        help='Output CSV file for Anki import')
     parser.add_argument('-l', '--limit', type=int, 
                        help='Limit number of entries to process (for testing)')
@@ -262,10 +275,12 @@ def main():
     ]
     processed_count = 0
     entries_by_word = {}
+    redirect_map = {}
     
     print(f"Processing {args.input_file}...")
     print(f"Output will be written to {args.output}")
     
+    # First pass: collect all entries and build redirect map
     with open(input_path, 'r', encoding='utf-8') as infile:
         for line_num, line in enumerate(infile, 1):
             if args.limit and processed_count >= args.limit:
@@ -277,6 +292,13 @@ def main():
                 
                 if processed_count % 10000 == 0:
                     print(f"Processed {processed_count} entries...")
+                
+                # Track redirects separately
+                if entry.get('pos') == 'soft-redirect':
+                    word = entry.get('word', '')
+                    redirects = entry.get('redirects', [])
+                    if word and redirects:
+                        redirect_map[word] = redirects[0]  # Use first redirect target
                 
                 card_data = process_entry(entry)
                 if card_data:
@@ -290,6 +312,33 @@ def main():
                 continue
             except Exception as e:
                 print(f"Error processing entry on line {line_num}: {e}")
+                continue
+    
+    print("Resolving redirects...")
+    # Second pass: resolve redirects
+    with open(input_path, 'r', encoding='utf-8') as infile:
+        for line_num, line in enumerate(infile, 1):
+            try:
+                entry = json.loads(line.strip())
+                word = entry.get('word', '')
+                
+                # Check if this word is a redirect target
+                if word in redirect_map.values():
+                    # Find all words that redirect to this one
+                    for redirect_word, target in redirect_map.items():
+                        if target == word and redirect_word not in entries_by_word:
+                            # Create entry for redirect word using target's definition
+                            card_data = process_entry(entry)
+                            if card_data:
+                                # Override the front with the redirect word
+                                card_data['Front'] = redirect_word
+                                if redirect_word not in entries_by_word:
+                                    entries_by_word[redirect_word] = []
+                                entries_by_word[redirect_word].append(card_data)
+                
+            except json.JSONDecodeError:
+                continue
+            except Exception:
                 continue
     
     print("Combining entries by word...")
