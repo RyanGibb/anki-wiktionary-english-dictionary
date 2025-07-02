@@ -5,8 +5,26 @@ import csv
 import argparse
 from pathlib import Path
 import sys
+import re
 
 from wiktionary_to_anki import process_entry, combine_entries, load_frequency_data_for_words, get_frequency_rank
+
+def generate_stroke_order(word):
+    """Generate stroke order HTML with SVG images for each Chinese character"""
+    if not word:
+        return ""
+
+    # Filter to only Chinese characters (CJK unified ideographs)
+    chinese_chars = re.findall(r'[\u4e00-\u9fff]', word)
+
+    if not chinese_chars:
+        return ""
+
+    img_tags = []
+    for char in chinese_chars:
+        img_tags.append(f'<img width="640" src="{char}.svg">')
+
+    return ''.join(img_tags)
 
 def find_words_in_wiktionary(words, wiktionary_file):
     target_words = {word.lower(): word for word in words}
@@ -66,6 +84,7 @@ def process_words_to_cards(words, wiktionary_file="kaikki.org-dictionary-Chinese
         
         card_data = combined_cards[word]
         card_data['Frequency'] = get_frequency_rank(word, frequency_dict)
+        card_data['Stroke Order'] = generate_stroke_order(card_data.get('Front', word))
         cards.append(card_data)
     
     return cards
@@ -81,7 +100,7 @@ def create_card_for_word(word, wiktionary_file="kaikki.org-dictionary-Chinese.js
     if output_file:
         fieldnames = [
             'Front', 'Back', 'Part of Speech', 'IPA', 'Audio', 
-            'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
+            'Etymology', 'Forms', 'Hyphenation', 'Stroke Order', 'Tags', 'Frequency'
         ]
         
         with open(output_file, 'a', newline='', encoding='utf-8') as f:
@@ -120,7 +139,7 @@ def main():
         if all_cards:
             fieldnames = [
                 'Front', 'Back', 'Part of Speech', 'IPA', 'Audio', 
-                'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
+                'Etymology', 'Forms', 'Hyphenation', 'Stroke Order', 'Tags', 'Frequency'
             ]
             
             with open(args.output, 'a', newline='', encoding='utf-8') as f:

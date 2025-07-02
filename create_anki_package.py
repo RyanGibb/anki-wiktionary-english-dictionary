@@ -7,6 +7,24 @@ import tempfile
 import os
 from pathlib import Path
 import time
+import re
+
+def generate_stroke_order(word):
+    """Generate stroke order HTML with SVG images for each Chinese character"""
+    if not word:
+        return ""
+
+    # Filter to only Chinese characters (CJK unified ideographs)
+    chinese_chars = re.findall(r'[\u4e00-\u9fff]', word)
+
+    if not chinese_chars:
+        return ""
+
+    img_tags = []
+    for char in chinese_chars:
+        img_tags.append(f'<img width="640" src="{char}.svg">')
+
+    return ''.join(img_tags)
 
 def create_anki_package(csv_file, output_file="chinese.apkg"):
     
@@ -153,7 +171,8 @@ def insert_note_type(cursor):
                 {"name": "Audio", "ord": 4, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Etymology", "ord": 5, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Forms", "ord": 6, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Hyphenation", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Hyphenation", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Stroke Order", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Tags", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Frequency", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
             ],
@@ -167,6 +186,7 @@ def insert_note_type(cursor):
   {{#IPA}}<div class="ipa">{{IPA}}</div>{{/IPA}}
   {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
   {{#Hyphenation}}<div class="hyphenation">{{Hyphenation}}</div>{{/Hyphenation}}
+  {{#Stroke Order}}<div class="stroke-order">{{Stroke Order}}</div>{{/Stroke Order}}
 </div>''',
                     "afmt": '''{{FrontSide}}
 
@@ -332,8 +352,10 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
             note_id = int(time.time() * 1000) + i
             card_id = note_id + 1000000
             
+            front_word = row.get('Front', '')
+            stroke_order = generate_stroke_order(front_word)
             fields = '\x1f'.join([
-                row.get('Front', ''),
+                front_word,
                 row.get('Back', ''),
                 row.get('Part of Speech', ''),
                 row.get('IPA', ''),
@@ -341,6 +363,7 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
                 row.get('Etymology', ''),
                 row.get('Forms', ''),
                 row.get('Hyphenation', ''),
+                stroke_order,
                 row.get('Tags', ''),
                 row.get('Frequency', '')
             ])

@@ -64,12 +64,16 @@ def format_pronunciation(sounds):
             tag_str = f" ({', '.join(tags)})" if tags else ""
             ipa_list.append(f"{sound['ipa']}{tag_str}")
         
-        if 'mp3_url' in sound:
+        if 'mp3_url' in sound or 'ogg_url' in sound:
             label = "Audio"
             if 'audio' in sound:
-                label = sound['audio'].replace('.ogg', '')
+                label = sound['audio'].replace('.ogg', '').replace('.wav', '')
             
-            audio_elements.append(f'<div><strong>{label}:</strong><br> <audio controls><source src="{sound["mp3_url"]}" type="audio/mpeg">🔊 <a href="{sound["mp3_url"]}" target="_blank">Audio</a></audio></div>')
+            # Prefer MP3, fall back to OGG
+            audio_url = sound.get('mp3_url') or sound.get('ogg_url')
+            audio_type = "audio/mpeg" if 'mp3_url' in sound else "audio/ogg"
+            
+            audio_elements.append(f'<div><strong>{label}:</strong><br> <audio controls><source src="{audio_url}" type="{audio_type}">🔊 <a href="{audio_url}" target="_blank">Audio</a></audio></div>')
     
     ipa_text = '<br>'.join(ipa_list)
     audio_text = ''.join(audio_elements)
@@ -111,6 +115,23 @@ def format_definitions(senses):
             definitions.append(formatted_def)
     
     return '<br>'.join(definitions)
+
+def get_simplified_form(forms):
+    """Extract simplified form from forms data if available"""
+    if not forms:
+        return None
+    
+    for form in forms:
+        form_text = form.get('form', '')
+        raw_tags = form.get('raw_tags', [])
+        tags = form.get('tags', [])
+        
+        if form_text:
+            # Check if this form is marked as simplified in raw_tags
+            if 'Simplified Chinese' in raw_tags:
+                return form_text
+    
+    return None
 
 def format_forms(forms):
     if not forms:
@@ -180,7 +201,12 @@ def process_entry(entry):
     
     etymology = format_etymology(entry.get('etymology_text', ''))
     
-    forms = format_forms(entry.get('forms', []))
+    forms_data = entry.get('forms', [])
+    forms = format_forms(forms_data)
+    
+    # Use simplified form if available, otherwise use original word
+    simplified_form = get_simplified_form(forms_data)
+    front_word = simplified_form if simplified_form else word
     
     translations = ""
     
@@ -188,7 +214,7 @@ def process_entry(entry):
     hyphen_text = '-'.join(hyphenation) if hyphenation else ""
     
     return {
-        'Front': word,
+        'Front': front_word,
         'Back': definitions,
         'Part of Speech': pos,
         'IPA': ipa,
@@ -209,7 +235,7 @@ def combine_entries(entries_dict):
             
         first_entry = entries[0]
         combined = {
-            'Front': word,
+            'Front': first_entry.get('Front', word),  # Use Front from first entry (may be simplified)
             'Back': '',
             'Part of Speech': '',
             'IPA': first_entry.get('IPA', ''),
