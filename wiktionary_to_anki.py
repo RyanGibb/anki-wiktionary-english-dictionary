@@ -214,8 +214,9 @@ def process_entry(entry):
     hyphen_text = '-'.join(hyphenation) if hyphenation else ""
 
     return {
-        'Front': front_word,
-        'Back': definitions,
+        'Simplified': front_word,
+        'Traditional': word,
+        'Definition': definitions,
         'Part of Speech': pos,
         'IPA': ipa,
         'Audio': audio,
@@ -235,8 +236,9 @@ def combine_entries(entries_dict):
 
         first_entry = entries[0]
         combined = {
-            'Front': first_entry.get('Front', word),  # Use Front from first entry (may be simplified)
-            'Back': '',
+            'Simplified': first_entry.get('Simplified', word),
+            'Traditional': first_entry.get('Traditional', word),
+            'Definition': '',
             'Part of Speech': '',
             'IPA': first_entry.get('IPA', ''),
             'Audio': first_entry.get('Audio', ''),
@@ -253,7 +255,7 @@ def combine_entries(entries_dict):
 
         for entry in entries:
             pos = entry.get('Part of Speech', 'Unknown')
-            back = entry.get('Back', '')
+            back = entry.get('Definition', '')
             forms = entry.get('Forms', '')
 
             if pos and pos not in all_pos:
@@ -273,7 +275,7 @@ def combine_entries(entries_dict):
             if pos in pos_definitions:
                 combined_back.append(f"<strong>{pos}:</strong><br>{pos_definitions[pos]}")
 
-        combined['Back'] = '<br><br>'.join(combined_back)
+        combined['Definition'] = '<br><br>'.join(combined_back)
         combined['Part of Speech'] = ', '.join(all_pos)
         combined['Forms'] = '; '.join(all_forms)
         combined['Tags'] = f"wiktionary {' '.join(all_pos)}"
@@ -302,7 +304,7 @@ def main():
     output_path = Path(args.output)
 
     fieldnames = [
-        'Front', 'Back', 'Part of Speech', 'IPA', 'Audio',
+        'Simplified', 'Traditional', 'Definition', 'Part of Speech', 'IPA', 'Audio',
         'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
     ]
     processed_count = 0
@@ -355,7 +357,7 @@ def main():
                             if redirect_word not in entries_by_word and not is_english_word(redirect_word):
                                 # Create entry for redirect word using this definition
                                 redirect_card = card_data.copy()
-                                redirect_card['Front'] = redirect_word
+                                redirect_card['Simplified'] = redirect_word
                                 entries_by_word[redirect_word] = [redirect_card]
 
             except json.JSONDecodeError as e:
@@ -378,7 +380,7 @@ def main():
     print("Sorting by frequency...")
     sorted_cards = []
     for word, card_data in combined_cards.items():
-        if len(card_data['Back']) >= args.min_def_length:
+        if len(card_data['Definition']) >= args.min_def_length:
             freq = frequency_dict.get(word.lower())
             if freq is not None:  # Only include words with actual frequency data
                 sorted_cards.append((freq, word, card_data))
