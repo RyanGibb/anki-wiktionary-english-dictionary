@@ -51,6 +51,43 @@ def format_etymology(etymology_text):
     etymology = re.sub(r'\n+', '<br>', etymology)
     return etymology.strip()
 
+def extract_pinyin(sounds):
+    """Extract pinyin from sounds data, preferring tone-marked over numbered"""
+    if not sounds:
+        return ""
+    
+    tone_marked = []
+    numbered = []
+    
+    for sound in sounds:
+        zh_pron = sound.get('zh-pron', '')
+        tags = sound.get('tags', [])
+        
+        # Look for standard Mandarin pinyin
+        if zh_pron and 'Mandarin' in tags and 'Pinyin' in tags:
+            # Check if it contains tone marks (āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ)
+            if any(c in zh_pron for c in 'āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ'):
+                tone_marked.append(zh_pron)
+            # Check if it contains numbers (tone notation)
+            elif any(c.isdigit() for c in zh_pron):
+                numbered.append(zh_pron)
+            else:
+                # Neutral tone or other, treat as tone-marked
+                tone_marked.append(zh_pron)
+    
+    # Prefer tone-marked, fall back to numbered
+    preferred = tone_marked if tone_marked else numbered
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_pinyin = []
+    for pinyin in preferred:
+        if pinyin not in seen:
+            seen.add(pinyin)
+            unique_pinyin.append(pinyin)
+    
+    return ', '.join(unique_pinyin)
+
 def format_pronunciation(sounds):
     if not sounds:
         return "", ""
@@ -198,6 +235,7 @@ def process_entry(entry):
             return None
     sounds = entry.get('sounds', [])
     ipa, audio = format_pronunciation(sounds)
+    pinyin = extract_pinyin(sounds)
 
     etymology = format_etymology(entry.get('etymology_text', ''))
 
@@ -216,6 +254,7 @@ def process_entry(entry):
     return {
         'Simplified': front_word,
         'Traditional': word,
+        'Pinyin': pinyin,
         'Definition': definitions,
         'Part of Speech': pos,
         'IPA': ipa,
@@ -238,6 +277,7 @@ def combine_entries(entries_dict):
         combined = {
             'Simplified': first_entry.get('Simplified', word),
             'Traditional': first_entry.get('Traditional', word),
+            'Pinyin': first_entry.get('Pinyin', ''),
             'Definition': '',
             'Part of Speech': '',
             'IPA': first_entry.get('IPA', ''),
@@ -304,7 +344,7 @@ def main():
     output_path = Path(args.output)
 
     fieldnames = [
-        'Simplified', 'Traditional', 'Definition', 'Part of Speech', 'IPA', 'Audio',
+        'Simplified', 'Traditional', 'Pinyin', 'Definition', 'Part of Speech', 'IPA', 'Audio',
         'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
     ]
     processed_count = 0

@@ -166,24 +166,26 @@ def insert_note_type(cursor):
             "flds": [
                 {"name": "Simplified", "ord": 0, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Traditional", "ord": 1, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Definition", "ord": 2, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Part of Speech", "ord": 3, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "IPA", "ord": 4, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Audio", "ord": 5, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Etymology", "ord": 6, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Forms", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Hyphenation", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Stroke Order", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Tags", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Frequency", "ord": 11, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
+                {"name": "Pinyin", "ord": 2, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Definition", "ord": 3, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Part of Speech", "ord": 4, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "IPA", "ord": 5, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Audio", "ord": 6, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Etymology", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Forms", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Hyphenation", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Stroke Order", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Tags", "ord": 11, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Frequency", "ord": 12, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
             ],
-            "sortf": 10,
+            "sortf": 12,
             "tmpls": [
                 {
                     "name": "Card 1",
                     "ord": 0,
                     "qfmt": '''<div class="word-front">
   <a class="word" href="https://en.wiktionary.org/wiki/{{Simplified}}#Chinese">{{Simplified}}</a>
+  {{#Pinyin}}<div class="pinyin">{{Pinyin}}</div>{{/Pinyin}}
   {{#IPA}}<div class="ipa">{{IPA}}</div>{{/IPA}}
   {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
   {{#Hyphenation}}<div class="hyphenation">{{Hyphenation}}</div>{{/Hyphenation}}
@@ -219,6 +221,12 @@ def insert_note_type(cursor):
 .word {
   font-size: 2em;
   font-weight: bold;
+}
+
+.pinyin {
+  font-size: 1.2em;
+  color: #666;
+  margin: 5px 0;
 }
 
 .ipa {
@@ -358,6 +366,7 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
             fields = '\x1f'.join([
                 front_word,
                 row.get('Traditional', ''),
+                row.get('Pinyin', ''),
                 row.get('Definition', ''),
                 row.get('Part of Speech', ''),
                 row.get('IPA', ''),
