@@ -75,7 +75,7 @@ def clean_html(text):
     return text.strip()
 
 # matched on the reading, not the spelling: 还 is recorded huàn, the deck reads hái
-SWAC = os.environ.get("SWAC_INDEX", "")
+SWAC = os.environ.get("SWAC_INDEX", "swac-index.csv")
 RECORDED = {}
 if SWAC and Path(SWAC).exists():
     with open(SWAC, encoding="utf-8") as fh:

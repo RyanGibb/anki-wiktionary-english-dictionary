@@ -2,3 +2,4 @@
 *.apkg
 *.jsonl
 *.txt
+!swac-index.csv
