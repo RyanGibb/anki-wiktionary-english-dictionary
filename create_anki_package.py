@@ -10,9 +10,59 @@ import time
 import re
 import hashlib
 
-# the notetype already in the collection; a fresh id would duplicate the deck on import
-NOTE_TYPE_ID = 1751458562786
-NOTE_TYPE_NAME = "Chinese Dictionary"
+# the notetypes already in the collection; a fresh id would duplicate the deck
+LANGUAGES = {
+    "chinese": {
+        "id": 1751458562786,
+        "name": "Chinese Dictionary",
+        "guid_prefix": "chinese-dict",
+        "front": "Simplified",
+        "flds": [
+                {"name": "Simplified", "ord": 0, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Traditional", "ord": 1, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Pinyin", "ord": 2, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Definition", "ord": 3, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Part of Speech", "ord": 4, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "IPA", "ord": 5, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Audio", "ord": 6, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Etymology", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Forms", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Hyphenation", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Tags", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Frequency", "ord": 11, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "StrokeOrder", "ord": 12, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "GlyphOrigin", "ord": 13, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
+        ],
+        "sortf": 11,
+        "qfmt": "<div class=\"hanzi\">{{Simplified}}</div>\n",
+        "afmt": "<div class=hanzi><a href=\"https://en.wiktionary.org/wiki/{{Traditional}}#Chinese\">{{Simplified}}</a></div>\n{{#Pinyin}}<div class=pinyin>{{Pinyin}}</div>{{/Pinyin}}\n{{#Definition}}<div class=english>{{Definition}}</div>{{/Definition}}\n{{#Part of Speech}}<div class=description>{{Part of Speech}}</div>{{/Part of Speech}}\n<hr>\n{{#GlyphOrigin}}<div class=etym><b class=en>Glyph origin</b>{{GlyphOrigin}}</div>{{/GlyphOrigin}}\n{{Audio}}\n{{#Etymology}}<div class=etym>{{Etymology}}</div>{{/Etymology}}\n{{#Forms}}<div class=more>{{Forms}}</div>{{/Forms}}\n<br>\n<div class=\"vertical-column\">{{StrokeOrder}}</div>\n",
+        "css": ":root {\n  --link: #1666c0;\n}\n\n.nightMode, .night_mode {\n  --link: #6cf;\n}\n\n.card {\n    font-family: arial;\n    font-size: 10px;\n    text-align: center;\n}\n\n.hanzi {\n    font-family: SimSun;\n    font-size: 60px;\n}\n\n.pinyin {\n    font-family: Gentium Plus;\n    font-size: 22px;\n}\n\n.english {\n    font-family: Georgia;\n    font-size: 16px;\n}\n\n.sentence{\n    font-family: SimSun;\n    font-size: 24px;\n}\n\n.description{\n    font-family: Georgia;\n    font-size: 16px;\n    opacity: 0.65;\n}\n\n.horizontal-container {\n  display: flex;\n  gap: 2rem;\n  justify-content: center;\n}\n\n.vertical-column {\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n  align-items: center;\n}\n\n.big-button {\n  font-size: 1.5em;\n  cursor: pointer;\n  min-width: 4em;\n  min-height: 3em;\n  touch-action: manipulation;\n  -webkit-user-select: none;\n  -webkit-touch-callout: none;\n  user-select: none;\n  margin: 0pt;\n}\n\na {\n  color: var(--link);\n  text-decoration: none;\n}\n\na:hover {\n  text-decoration: underline;\n}\n.homograph {\n    font-family: Georgia;\n    font-size: 14px;\n    opacity: 0.55;\n}\n\n.examples {\n    font-family: SimSun;\n    font-size: 20px;\n    text-align: left;\n    display: inline-block;\n}\n\n.examples li { margin: 6px 0; }\n\n.vertical-column img {\n  max-width: 100%;\n  height: auto;\n  margin: 2px;\n}\n\n\n\n.drawbox {\n  border: 1px solid currentColor;\n  border-radius: 4px;\n  opacity: 0.9;\n}\n\n.en {\n  font-family: Georgia;\n  opacity: 0.6;\n}\n\n.more {\n  font-size: 0.82em;\n  opacity: 0.7;\n  margin-top: 4px;\n}\n\n.pinyinSen {\n  font-family: Gentium Plus;\n  font-size: 0.8em;\n  opacity: 0.7;\n}\n\n.etym {\n  font-family: Georgia;\n  font-size: 13px;\n  text-align: left;\n  max-width: 34em;\n  margin: 10px auto 0;\n  opacity: 0.75;\n}\n\n.etymItem { margin: 4px 0; }\n\n.etymTrad {\n  font-family: SimSun;\n  font-size: 22px;\n  float: right;\n  margin-left: 8px;\n  opacity: 0.5;\n}\n\n.example {\n  font-family: Georgia;\n  font-size: 15px;\n  opacity: 0.7;\n  margin-top: 6px;\n}\n\n.exPinyin { font-family: Gentium Plus; }\n\n.etymology, .etym { font-family: Georgia; font-size: 13px; text-align: left;\n  max-width: 34em; margin: 10px auto 0; opacity: 0.75; }\n.centre { text-align: center; }\n",
+    },
+    "english": {
+        "id": 1751408168108,
+        "name": "English",
+        "guid_prefix": "english-dict",
+        "front": "Front",
+        "flds": [
+        {"name": "Front", "ord": 0, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Back", "ord": 1, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Part of Speech", "ord": 2, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "IPA", "ord": 3, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Audio", "ord": 4, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Etymology", "ord": 5, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Forms", "ord": 6, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Hyphenation", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Tags", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Frequency", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+        {"name": "Source", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
+        ],
+        "sortf": 9,
+        "qfmt": "<div class=\"word-front\">\n  <a class=\"word\" href=\"https://en.wiktionary.org/wiki/{{Front}}#English\">{{Front}}</a>\n  {{#IPA}}<div class=\"ipa\">{{IPA}}</div>{{/IPA}}\n  {{#Audio}}<div class=\"audio\">{{Audio}}</div>{{/Audio}}\n  {{#Hyphenation}}<div class=\"hyphenation\">{{Hyphenation}}</div>{{/Hyphenation}}\n</div>",
+        "afmt": "{{FrontSide}}\n\n<hr id=\"answer\">\n\n<div class=\"word-back\">\n  <div class=\"definitions\">{{Back}}</div>\n  {{#Part of Speech}}<div class=\"pos\"><strong>Part of Speech:</strong> {{Part of Speech}}</div>{{/Part of Speech}}\n  {{#Etymology}}<div class=\"etymology\"><strong>Etymology:</strong> {{Etymology}}</div>{{/Etymology}}\n  {{#Forms}}<div class=\"forms\"><strong>Forms:</strong> {{Forms}}</div>{{/Forms}}\n  {{#Source}}<div class=\"source\">{{Source}}</div>{{/Source}}\n</div>",
+        "css": ".card {\n  text-align: left;\n}\n\n.word-front {\n  text-align: center;\n}\n\n.word {\n  font-size: 2em;\n  font-weight: bold;\n}\n\n.ipa {\n  opacity: 0.8;\n}\n\n.hyphenation {\n  font-size: 1em;\n  font-style: italic;\n  opacity: 0.7;\n}\n\n.source {\n  font-size: 0.7em;\n}\n\n.pos, .etymology, .forms, .frequency {\n  margin: 8px 0;\n  font-size: 0.9em;\n  opacity: 0.85;\n}\n\nhr {\n  border: none;\n  border-top: 1px solid;\n  margin: 15px 0;\n  opacity: 0.3;\n}\n\na {\n  color: #6cf;\n  text-decoration: none;\n}\n\na:hover {\n  text-decoration-color: #fff;\n}",
+    },
+}
+
 
 BASE91 = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
           "!#$%&()*+,-./:;<=>?@[]^_`{|}~")
@@ -71,31 +121,20 @@ def available_svgs():
     return {chr(int(p.name.split("-")[0])) for p in d.glob("*-still.svg")}
 
 
-def available_svgs():
-    """The characters makemeahanzi actually draws.
-
-    Half the CJK block has no diagram -- \u5e2f, \u5b9f, \u7d4c are Japanese shinjitai -- and emitting
-    an <img> for them leaves the collection with thousands of missing-media warnings.
-    """
-    d = MAKEMEAHANZI / "svgs-still"
-    if not d.is_dir():
-        raise SystemExit(f"missing {d} -- set MAKEMEAHANZI")
-    return {chr(int(p.name.split("-")[0])) for p in d.glob("*-still.svg")}
-
-
 def generate_stroke_order(word, have):
     if not word:
         return ""
     chars = [c for c in re.findall(r'[\u4e00-\u9fff]', word) if c in have]
     return ''.join(f'<img width="640" src="{c}.svg">' for c in chars)
 
-def create_anki_package(csv_file, output_file="chinese.apkg", bundle_media=True):
+def create_anki_package(csv_file, output_file="chinese.apkg", language="chinese",
+                        bundle_media=True):
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
         db_path = temp_path / "collection.anki2"
-        create_anki_database(db_path, csv_file)
+        create_anki_database(db_path, csv_file, language)
 
         media = find_media(db_path) if bundle_media else {}
         manifest = {str(i): name for i, name in enumerate(sorted(media))}
@@ -111,18 +150,19 @@ def create_anki_package(csv_file, output_file="chinese.apkg", bundle_media=True)
 
     print(f"Created Anki package: {output_file}")
 
-def create_anki_database(db_path, csv_file):
+def create_anki_database(db_path, csv_file, language="chinese"):
 
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     create_anki_schema(cursor)
 
-    note_type_id = insert_note_type(cursor)
+    note_type_id = insert_note_type(cursor, LANGUAGES[language])
 
     deck_id = insert_deck(cursor)
 
-    insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id)
+    insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id,
+                          LANGUAGES[language])
 
     conn.commit()
     conn.close()
@@ -217,43 +257,28 @@ def create_anki_schema(cursor):
     cursor.execute('CREATE INDEX ix_revlog_usn ON revlog (usn)')
     cursor.execute('CREATE INDEX ix_revlog_cid ON revlog (cid)')
 
-def insert_note_type(cursor):
+def insert_note_type(cursor, lang):
 
-    note_type_id = NOTE_TYPE_ID
+    note_type_id = lang["id"]
 
     note_type = {
         str(note_type_id): {
             "id": note_type_id,
             "vers": [],
-            "name": NOTE_TYPE_NAME,
+            "name": lang["name"],
             "tags": [],
             "did": 1,
             "usn": -1,
             "req": [[0, "any", [0]]],
             "type": 0,
-            "flds": [
-                {"name": "Simplified", "ord": 0, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Traditional", "ord": 1, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Pinyin", "ord": 2, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Definition", "ord": 3, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Part of Speech", "ord": 4, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "IPA", "ord": 5, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Audio", "ord": 6, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Etymology", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Forms", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Hyphenation", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Tags", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Frequency", "ord": 11, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "StrokeOrder", "ord": 12, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "GlyphOrigin", "ord": 13, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
-            ],
-            "sortf": 11,
+            "flds": lang["flds"],
+            "sortf": lang["sortf"],
             "tmpls": [
                 {
                     "name": "Card 1",
                     "ord": 0,
-                    "qfmt": "<div class=\"hanzi\">{{Simplified}}</div>\n",
-                    "afmt": "<div class=hanzi><a href=\"https://en.wiktionary.org/wiki/{{Traditional}}#Chinese\">{{Simplified}}</a></div>\n{{#Pinyin}}<div class=pinyin>{{Pinyin}}</div>{{/Pinyin}}\n{{#Definition}}<div class=english>{{Definition}}</div>{{/Definition}}\n{{#Part of Speech}}<div class=description>{{Part of Speech}}</div>{{/Part of Speech}}\n<hr>\n{{#GlyphOrigin}}<div class=etym><b class=en>Glyph origin</b>{{GlyphOrigin}}</div>{{/GlyphOrigin}}\n{{Audio}}\n{{#Etymology}}<div class=etym>{{Etymology}}</div>{{/Etymology}}\n{{#Forms}}<div class=more>{{Forms}}</div>{{/Forms}}\n<br>\n<div class=\"vertical-column\">{{StrokeOrder}}</div>\n",
+                    "qfmt": lang["qfmt"],
+                    "afmt": lang["afmt"],
                     "bqfmt": "{{Simplified}}",
                     "bafmt": "{{Definition}}",
                     "did": None,
@@ -262,7 +287,7 @@ def insert_note_type(cursor):
                 }
             ],
             "mod": int(time.time()),
-            "css": ":root {\n  --link: #1666c0;\n}\n\n.nightMode, .night_mode {\n  --link: #6cf;\n}\n\n.card {\n    font-family: arial;\n    font-size: 10px;\n    text-align: center;\n}\n\n.hanzi {\n    font-family: SimSun;\n    font-size: 60px;\n}\n\n.pinyin {\n    font-family: Gentium Plus;\n    font-size: 22px;\n}\n\n.english {\n    font-family: Georgia;\n    font-size: 16px;\n}\n\n.sentence{\n    font-family: SimSun;\n    font-size: 24px;\n}\n\n.description{\n    font-family: Georgia;\n    font-size: 16px;\n    opacity: 0.65;\n}\n\n.horizontal-container {\n  display: flex;\n  gap: 2rem;\n  justify-content: center;\n}\n\n.vertical-column {\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n  align-items: center;\n}\n\n.big-button {\n  font-size: 1.5em;\n  cursor: pointer;\n  min-width: 4em;\n  min-height: 3em;\n  touch-action: manipulation;\n  -webkit-user-select: none;\n  -webkit-touch-callout: none;\n  user-select: none;\n  margin: 0pt;\n}\n\na {\n  color: var(--link);\n  text-decoration: none;\n}\n\na:hover {\n  text-decoration: underline;\n}\n.homograph {\n    font-family: Georgia;\n    font-size: 14px;\n    opacity: 0.55;\n}\n\n.examples {\n    font-family: SimSun;\n    font-size: 20px;\n    text-align: left;\n    display: inline-block;\n}\n\n.examples li { margin: 6px 0; }\n\n.vertical-column img {\n  max-width: 100%;\n  height: auto;\n  margin: 2px;\n}\n\n\n\n.drawbox {\n  border: 1px solid currentColor;\n  border-radius: 4px;\n  opacity: 0.9;\n}\n\n.en {\n  font-family: Georgia;\n  opacity: 0.6;\n}\n\n.more {\n  font-size: 0.82em;\n  opacity: 0.7;\n  margin-top: 4px;\n}\n\n.pinyinSen {\n  font-family: Gentium Plus;\n  font-size: 0.8em;\n  opacity: 0.7;\n}\n\n.etym {\n  font-family: Georgia;\n  font-size: 13px;\n  text-align: left;\n  max-width: 34em;\n  margin: 10px auto 0;\n  opacity: 0.75;\n}\n\n.etymItem { margin: 4px 0; }\n\n.etymTrad {\n  font-family: SimSun;\n  font-size: 22px;\n  float: right;\n  margin-left: 8px;\n  opacity: 0.5;\n}\n\n.example {\n  font-family: Georgia;\n  font-size: 15px;\n  opacity: 0.7;\n  margin-top: 6px;\n}\n\n.exPinyin { font-family: Gentium Plus; }\n\n.etymology, .etym { font-family: Georgia; font-size: 13px; text-align: left;\n  max-width: 34em; margin: 10px auto 0; opacity: 0.75; }\n.centre { text-align: center; }\n"
+            "css": lang["css"],
         }
     }
 
@@ -358,7 +383,7 @@ def insert_note_type(cursor):
 def insert_deck(cursor):
     return 1
 
-def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
+def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id, lang):
     import csv
 
     if not os.path.exists(csv_file):
@@ -369,40 +394,28 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
         reader = csv.DictReader(f)
 
         # Wiktionary lists a headword once per part of speech, so 中国 arrives twice.
-        have = available_svgs()
+        chinese = lang["front"] == "Simplified"
+        have = available_svgs() if chinese else set()
+        key_field = "Traditional" if chinese else "Front"
         best = {}
         for row in reader:
-            key = (row.get('Simplified', ''), row.get('Traditional', ''))
-            if not key[0]:
+            key = row.get(key_field, "") or row.get(lang["front"], "")
+            if not key:
                 continue
-            if len(row.get('Definition', '')) > len(best.get(key, {}).get('Definition', '')):
+            body = 'Definition' if chinese else 'Back'
+            if len(row.get(body, '')) > len(best.get(key, {}).get(body, '')):
                 best[key] = row
 
-        for i, ((simplified, traditional), row) in enumerate(best.items()):
+        for i, (key, row) in enumerate(best.items()):
 
-            # the Wiktionary headword
-            guid = guid_for("chinese-dict", traditional)
+            guid = guid_for(lang["guid_prefix"], key)
             note_id = int(time.time() * 1000) + i
             card_id = note_id + 1000000
 
-            front_word = simplified
-            stroke_order = generate_stroke_order(front_word, have)
-            fields = '\x1f'.join([
-                front_word,
-                traditional,
-                row.get('Pinyin', ''),
-                row.get('Definition', ''),
-                row.get('Part of Speech', ''),
-                row.get('IPA', ''),
-                row.get('Audio', ''),
-                row.get('Etymology', ''),
-                row.get('Forms', ''),
-                row.get('Hyphenation', ''),
-                row.get('Tags', ''),
-                row.get('Frequency', ''),
-                stroke_order,
-                row.get('GlyphOrigin', '')
-            ])
+            front_word = row.get(lang["front"], "")
+            if chinese:
+                row = dict(row, StrokeOrder=generate_stroke_order(front_word, have))
+            fields = '\x1f'.join(row.get(f["name"], "") for f in lang["flds"])
 
             cursor.execute('''
                 INSERT INTO notes (id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data)
@@ -413,7 +426,7 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
                 note_type_id,
                 int(time.time()),
                 fields,
-                row.get('Simplified', '')[:64]
+                front_word[:64]
             ))
 
             cursor.execute('''
@@ -434,10 +447,13 @@ if __name__ == '__main__':
     parser.add_argument('csv_file', help='CSV file with card data')
     parser.add_argument('-o', '--output', default='chinese.apkg',
                        help='Output .apkg file')
+    parser.add_argument('-l', '--language', default='chinese',
+                       choices=sorted(LANGUAGES),
+                       help='Which notetype to build for')
     parser.add_argument('--no-media', action='store_true',
                        help='Leave stroke diagrams and audio out of the package')
 
     args = parser.parse_args()
 
-    create_anki_package(args.csv_file, args.output,
+    create_anki_package(args.csv_file, args.output, args.language,
                         bundle_media=not args.no_media)
