@@ -57,19 +57,23 @@ python wiktionary_to_anki.py input.jsonl --language english|chinese
 python create_anki_package.py input.csv --language english|chinese
 ```
 
-`--language` selects the notetype, whose id is pinned so that re-importing a rebuilt
-deck updates the existing notes rather than adding a second copy.
+`--language` picks which Wiktionary language to read and which columns to write, and
+has to agree across the two: the CSV's columns are the notetype's fields. It selects
+the notetype too, whose id is pinned so that re-importing a rebuilt deck updates the
+existing notes rather than adding a second copy. `DECK` names the deck to build into,
+by default `Chinese Dictionary` or `English Dictionary`.
 
-Chinese additionally reads, if set:
+Chinese also reads, if set:
 
 | variable | supplies |
 |---|---|
-| `CEDICT` | CC-CEDICT, for simplified forms kaikki no longer gives |
-| `SWAC_INDEX` | the reading of each recording, so audio is matched by reading rather than spelling (`swac-index.csv`, included) |
 | `MAKEMEAHANZI` | [skishore/makemeahanzi](https://github.com/skishore/makemeahanzi), stroke-order diagrams |
-| `AUDIO_CMN` | [hugolpz/audio-cmn](https://github.com/hugolpz/audio-cmn), the recordings themselves |
+| `AUDIO_CMN` | [hugolpz/audio-cmn](https://github.com/hugolpz/audio-cmn), the recordings |
+| `CEDICT` | CC-CEDICT, for the simplified forms kaikki no longer gives |
+| `SWAC_INDEX` | what each recording says, so audio is matched by reading rather than spelling |
 
-All four default to a checkout of that name beside the script.
+The first three default to a checkout of that name beside the script; `SWAC_INDEX` to
+the `swac-index.csv` in this repo.
 
 The package can then be imported into Anki.
 Select `Import any learning progress` to start all cards suspended, and unsuspend them as you want to learn them.

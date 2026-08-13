@@ -16,6 +16,8 @@ LANGUAGES = {
         "id": 1751458562786,
         "name": "Chinese Dictionary",
         "guid_prefix": "chinese-dict",
+        "deck": "Chinese Dictionary",
+        "deck_id": 1751458570176,
         "front": "Simplified",
         "flds": [
                 {"name": "Simplified", "ord": 0, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
@@ -42,6 +44,8 @@ LANGUAGES = {
         "id": 1751408168108,
         "name": "English",
         "guid_prefix": "english-dict",
+        "deck": "English Dictionary",
+        "deck_id": 1751408260592,
         "front": "Front",
         "flds": [
         {"name": "Front", "ord": 0, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
@@ -159,7 +163,7 @@ def create_anki_database(db_path, csv_file, language="chinese"):
 
     note_type_id = insert_note_type(cursor, LANGUAGES[language])
 
-    deck_id = insert_deck(cursor)
+    deck_id = insert_deck(cursor, LANGUAGES[language])
 
     insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id,
                           LANGUAGES[language])
@@ -308,10 +312,11 @@ def insert_note_type(cursor, lang):
         "newDeck": 1
     }
 
+    deck_id = lang["deck_id"]
     decks = {
-        "1": {
-            "desc": "Chinese dictionary from Wiktionary",
-            "name": "Chinese",
+        str(deck_id): {
+            "desc": f"{lang['name']} from Wiktionary",
+            "name": os.environ.get("DECK", lang["deck"]),
             "extendRev": 50,
             "usn": 0,
             "collapsed": False,
@@ -322,7 +327,7 @@ def insert_note_type(cursor, lang):
             "conf": 1,
             "revToday": [0, 0],
             "lrnToday": [0, 0],
-            "id": 1,
+            "id": deck_id,
             "mod": int(time.time())
         }
     }
@@ -380,8 +385,8 @@ def insert_note_type(cursor, lang):
 
     return note_type_id
 
-def insert_deck(cursor):
-    return 1
+def insert_deck(cursor, lang):
+    return lang["deck_id"]
 
 def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id, lang):
     import csv
