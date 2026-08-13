@@ -64,6 +64,20 @@ def local_audio(simplified, pinyin):
     return f"[sound:cmn-{simplified}.mp3]"
 
 
+# kaikki gives 這 no forms at all, and its redirects cannot tell the simplified 这
+# from a variant like 伱.
+CEDICT = os.environ.get("CEDICT", "")
+SIMPLIFIED_OF = {}
+if CEDICT and Path(CEDICT).exists():
+    with open(CEDICT, encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith("#"):
+                continue
+            parts = line.split(" ", 2)
+            if len(parts) > 2:
+                SIMPLIFIED_OF.setdefault(parts[0], parts[1])
+
+
 CJK = re.compile(r'^[一-鿿]$')
 BULLET = re.compile(r'^[*#]+\s*')
 GLYPH = {}
@@ -222,13 +236,10 @@ def get_simplified_form(forms):
 
     for form in forms:
         form_text = form.get('form', '')
-        raw_tags = form.get('raw_tags', [])
-        tags = form.get('tags', [])
-
-        if form_text:
-            # Check if this form is marked as simplified in raw_tags
-            if 'Simplified Chinese' in raw_tags:
-                return form_text
+        # kaikki renamed this from raw_tags "Simplified Chinese"
+        labels = set(form.get('raw_tags', [])) | set(form.get('tags', []))
+        if form_text and {'Simplified Chinese', 'Simplified-Chinese'} & labels:
+            return form_text
 
     return None
 
@@ -463,14 +474,16 @@ def main():
                         entries_by_word[word] = []
                     entries_by_word[word].append(card_data)
 
-                    # Check if any words redirect to this one
-                    if word in pending_redirects:
-                        for redirect_word in pending_redirects[word]:
-                            if redirect_word not in entries_by_word and not is_english_word(redirect_word):
-                                # Create entry for redirect word using this definition
-                                redirect_card = card_data.copy()
-                                redirect_card['Simplified'] = redirect_word
-                                entries_by_word[redirect_word] = [redirect_card]
+                    # A simplified form redirects to its traditional page. Many entries
+                    # carry no forms at all -- 這 has none -- so the simplified is only
+                    # knowable from the redirect. Fill it in here rather than emitting a
+                    # second row, which is one word arriving as both 這/這 and 这/這.
+                    if card_data['Simplified'] == word:
+                        simp = SIMPLIFIED_OF.get(word, word)
+                        if simp in pending_redirects.get(word, []):
+                            card_data['Simplified'] = simp
+                    # a variant redirecting here is not this word: 从 points at 叢
+                    # as a rejected 1955 draft, and is the simplified of 從
 
             except json.JSONDecodeError as e:
                 print(f"Error parsing line {line_num}: {e}")
@@ -483,19 +496,23 @@ def main():
     combined_cards = combine_entries(entries_by_word)
 
     print("Loading frequency data for found words...")
-    frequency_dict = load_frequency_data_for_words(set(combined_cards.keys()))
+    frequency_dict = load_frequency_data_for_words(
+        set(combined_cards) | {c.get('Simplified', '') for c in combined_cards.values()})
 
     print("Adding frequency data...")
     for word, card_data in combined_cards.items():
-        card_data['Frequency'] = get_frequency_rank(word, frequency_dict)
+        card_data['Frequency'] = (get_frequency_rank(card_data.get('Simplified', ''),
+                                                     frequency_dict)
+                                  or get_frequency_rank(word, frequency_dict))
 
     print("Sorting by frequency...")
     sorted_cards = []
     for word, card_data in combined_cards.items():
         if len(card_data['Definition']) >= args.min_def_length:
-            freq = frequency_dict.get(word.lower())
-            if freq is not None:  # Only include words with actual frequency data
-                sorted_cards.append((freq, word, card_data))
+            # ranked first, the rest after -- not dropped
+            freq = (frequency_dict.get(card_data.get('Simplified', ''))
+                    or frequency_dict.get(word.lower()))
+            sorted_cards.append((freq if freq is not None else 10 ** 9, word, card_data))
     sorted_cards.sort(key=lambda x: x[0])
     max_cards = 1000000
     top_cards = sorted_cards[:max_cards]
@@ -507,7 +524,8 @@ def main():
         writer.writeheader()
 
         for rank, (freq, word, card_data) in enumerate(top_cards, 1):
-            card_data['Frequency'] = str(rank)
+            # position, not a count; numbering the unranked would read as data
+            card_data['Frequency'] = str(rank) if freq < 10 ** 9 else ''
             writer.writerow(card_data)
             written_count += 1
 
