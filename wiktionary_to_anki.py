@@ -2,6 +2,8 @@
 
 import json
 import csv
+import html
+import os
 import re
 from pathlib import Path
 from urllib.parse import urlparse
@@ -42,6 +44,66 @@ def clean_html(text):
     text = re.sub(r'<[^>]+>', '', text)
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
+
+# matched on the reading, not the spelling: 还 is recorded huàn, the deck reads hái
+SWAC = os.environ.get("SWAC_INDEX", "")
+RECORDED = {}
+if SWAC and Path(SWAC).exists():
+    with open(SWAC, encoding="utf-8") as fh:
+        RECORDED = {r["word"]: r["pinyin"] for r in csv.DictReader(fh)}
+
+
+def local_audio(simplified, pinyin):
+    reading = RECORDED.get(simplified)
+    if not reading:
+        return ""
+    said = reading.replace(" ", "").replace("\u2019", "").replace("'", "").lower()
+    shown = {p.replace(" ", "").lower() for p in pinyin.split(",") if p.strip()}
+    if shown and said not in shown:
+        return ""
+    return f"[sound:cmn-{simplified}.mp3]"
+
+
+CJK = re.compile(r'^[一-鿿]$')
+BULLET = re.compile(r'^[*#]+\s*')
+GLYPH = {}
+
+
+def note_glyph_origin(entry):
+    """Remember the glyph origin of every single character we go past.
+
+    Wiktionary writes a word etymology for only 5% of compounds, but it documents the
+    characters, so 弟子 can be explained as 弟 plus 子 even though its own entry is bare.
+    """
+    word, text = entry.get('word', ''), entry.get('etymology_text') or ''
+    if text and CJK.match(word) and len(text) > len(GLYPH.get(word, '')):
+        GLYPH[word] = text
+
+
+def glyph_origin_for(simplified, traditional):
+    """One line per character, the first paragraph of each, keyed on the traditional
+    form: the origin of 麵 is wheat and the origin of 面 is a face."""
+    forms = traditional if len(traditional) == len(simplified) else simplified
+    out, seen = [], set()
+    for ch, form in zip(simplified, forms):
+        if not CJK.match(ch) or ch in seen:
+            continue
+        seen.add(ch)
+        text = GLYPH.get(form) or GLYPH.get(ch)
+        if not text:
+            continue
+        parts = [(bool(BULLET.match(x)), BULLET.sub('', x).strip())
+                 for x in text.split('\n') if x.strip()]
+        head, i, items = parts[0][1], 1, []
+        while i < len(parts) and parts[i][0]:
+            items.append(parts[i][1])
+            i += 1
+        if items:
+            head = head.rstrip(':') + ': ' + '; '.join(items)
+        label = ch if form == ch else f"{ch} {form}"
+        out.append(f'<div class="etymItem"><b>{label}</b> {html.escape(head)}</div>')
+    return ''.join(out)
+
 
 def format_etymology(etymology_text):
     if not etymology_text:
@@ -263,7 +325,9 @@ def process_entry(entry):
         'Forms': forms,
         'Hyphenation': hyphen_text,
         'Tags': f"wiktionary {pos}" if pos else "wiktionary",
-        'Frequency': ''
+        'Frequency': '',
+        'Headword': word,
+        'GlyphOrigin': ''
     }
 
 def combine_entries(entries_dict):
@@ -281,12 +345,18 @@ def combine_entries(entries_dict):
             'Definition': '',
             'Part of Speech': '',
             'IPA': first_entry.get('IPA', ''),
-            'Audio': first_entry.get('Audio', ''),
-            'Etymology': first_entry.get('Etymology', ''),
+            'Audio': (local_audio(first_entry.get('Simplified', word),
+                                  first_entry.get('Pinyin', ''))
+                      or first_entry.get('Audio', '')),
+            'Etymology': max((e.get('Etymology', '') for e in entries), key=len),
             'Forms': '',
             'Hyphenation': first_entry.get('Hyphenation', ''),
             'Tags': 'wiktionary',
-            'Frequency': ''
+            'Frequency': '',
+            'Headword': first_entry.get('Headword', word),
+            'GlyphOrigin': glyph_origin_for(
+                first_entry.get('Simplified', word),
+                first_entry.get('Traditional', word)),
         }
 
         pos_definitions = {}
@@ -345,7 +415,7 @@ def main():
 
     fieldnames = [
         'Simplified', 'Traditional', 'Pinyin', 'Definition', 'Part of Speech', 'IPA', 'Audio',
-        'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency'
+        'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency', 'Headword', 'GlyphOrigin'
     ]
     processed_count = 0
     entries_by_word = {}
@@ -370,6 +440,8 @@ def main():
                 word = entry.get('word', '')
                 if not word:
                     continue
+
+                note_glyph_origin(entry)
 
                 # Handle redirects
                 if entry.get('pos') == 'soft-redirect':

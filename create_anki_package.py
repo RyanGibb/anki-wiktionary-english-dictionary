@@ -8,23 +8,47 @@ import os
 from pathlib import Path
 import time
 import re
+import hashlib
 
-def generate_stroke_order(word):
-    """Generate stroke order HTML with SVG images for each Chinese character"""
+# the notetype already in the collection; a fresh id would duplicate the deck on import
+NOTE_TYPE_ID = 1751458562786
+NOTE_TYPE_NAME = "Chinese Dictionary"
+
+BASE91 = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+          "!#$%&()*+,-./:;<=>?@[]^_`{|}~")
+
+
+def guid_for(*values):
+    """Anki's base91 guid, keyed on the entry rather than the clock."""
+    h = int.from_bytes(hashlib.sha256("__".join(values).encode("utf-8")).digest()[:8],
+                       "big")
+    out = []
+    while h > 0:
+        out.append(BASE91[h % len(BASE91)])
+        h //= len(BASE91)
+    return "".join(reversed(out))
+
+
+MAKEMEAHANZI = Path(os.environ.get("MAKEMEAHANZI", "~/projects/makemeahanzi")).expanduser()
+
+
+def available_svgs():
+    """The characters makemeahanzi actually draws.
+
+    Half the CJK block has no diagram -- \u5e2f, \u5b9f, \u7d4c are Japanese shinjitai -- and emitting
+    an <img> for them leaves the collection with thousands of missing-media warnings.
+    """
+    d = MAKEMEAHANZI / "svgs-still"
+    if not d.is_dir():
+        raise SystemExit(f"missing {d} -- set MAKEMEAHANZI")
+    return {chr(int(p.name.split("-")[0])) for p in d.glob("*-still.svg")}
+
+
+def generate_stroke_order(word, have):
     if not word:
         return ""
-
-    # Filter to only Chinese characters (CJK unified ideographs)
-    chinese_chars = re.findall(r'[\u4e00-\u9fff]', word)
-
-    if not chinese_chars:
-        return ""
-
-    img_tags = []
-    for char in chinese_chars:
-        img_tags.append(f'<img width="640" src="{char}.svg">')
-
-    return ''.join(img_tags)
+    chars = [c for c in re.findall(r'[\u4e00-\u9fff]', word) if c in have]
+    return ''.join(f'<img width="640" src="{c}.svg">' for c in chars)
 
 def create_anki_package(csv_file, output_file="chinese.apkg"):
 
@@ -151,13 +175,13 @@ def create_anki_schema(cursor):
 
 def insert_note_type(cursor):
 
-    note_type_id = int(time.time() * 1000)
+    note_type_id = NOTE_TYPE_ID
 
     note_type = {
         str(note_type_id): {
             "id": note_type_id,
             "vers": [],
-            "name": "Chinese",
+            "name": NOTE_TYPE_NAME,
             "tags": [],
             "did": 1,
             "usn": -1,
@@ -174,34 +198,18 @@ def insert_note_type(cursor):
                 {"name": "Etymology", "ord": 7, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Forms", "ord": 8, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
                 {"name": "Hyphenation", "ord": 9, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Stroke Order", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Tags", "ord": 11, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
-                {"name": "Frequency", "ord": 12, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
+                {"name": "Tags", "ord": 10, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "Frequency", "ord": 11, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "StrokeOrder", "ord": 12, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False},
+                {"name": "GlyphOrigin", "ord": 13, "sticky": False, "rtl": False, "font": "Arial", "size": 20, "media": [], "collapsed": False, "description": "", "plainText": False}
             ],
-            "sortf": 12,
+            "sortf": 11,
             "tmpls": [
                 {
                     "name": "Card 1",
                     "ord": 0,
-                    "qfmt": '''<div class="word-front">
-  <a class="word" href="https://en.wiktionary.org/wiki/{{Simplified}}#Chinese">{{Simplified}}</a>
-  {{#Pinyin}}<div class="pinyin">{{Pinyin}}</div>{{/Pinyin}}
-  {{#IPA}}<div class="ipa">{{IPA}}</div>{{/IPA}}
-  {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
-  {{#Hyphenation}}<div class="hyphenation">{{Hyphenation}}</div>{{/Hyphenation}}
-  {{#Stroke Order}}<div class="stroke-order">{{Stroke Order}}</div>{{/Stroke Order}}
-</div>''',
-                    "afmt": '''{{FrontSide}}
-
-<hr id="answer">
-
-<div class="word-back">
-  <div class="definitions">{{Definition}}</div>
-  {{#Part of Speech}}<div class="pos"><strong>Part of Speech:</strong> {{Part of Speech}}</div>{{/Part of Speech}}
-  {{#Etymology}}<div class="etymology"><strong>Etymology:</strong> {{Etymology}}</div>{{/Etymology}}
-  {{#Forms}}<div class="forms"><strong>Forms:</strong> {{Forms}}</div>{{/Forms}}
-  {{#Frequency}}<div class="frequency"><strong>Frequency:</strong> {{Frequency}}</div>{{/Frequency}}
-</div>''',
+                    "qfmt": "<div class=\"hanzi\">{{Simplified}}</div>\n",
+                    "afmt": "<div class=hanzi><a href=\"https://en.wiktionary.org/wiki/{{Traditional}}#Chinese\">{{Simplified}}</a></div>\n{{#Pinyin}}<div class=pinyin>{{Pinyin}}</div>{{/Pinyin}}\n{{#Definition}}<div class=english>{{Definition}}</div>{{/Definition}}\n{{#Part of Speech}}<div class=description>{{Part of Speech}}</div>{{/Part of Speech}}\n<hr>\n{{#GlyphOrigin}}<div class=etym><b class=en>Glyph origin</b>{{GlyphOrigin}}</div>{{/GlyphOrigin}}\n{{Audio}}\n{{#Etymology}}<div class=etym>{{Etymology}}</div>{{/Etymology}}\n{{#Forms}}<div class=more>{{Forms}}</div>{{/Forms}}\n<br>\n<div class=\"vertical-column\">{{StrokeOrder}}</div>\n",
                     "bqfmt": "{{Simplified}}",
                     "bafmt": "{{Definition}}",
                     "did": None,
@@ -210,47 +218,7 @@ def insert_note_type(cursor):
                 }
             ],
             "mod": int(time.time()),
-            "css": '''.card {
-  text-align: left;
-}
-
-.word-front {
-  text-align: center;
-}
-
-.word {
-  font-size: 2em;
-  font-weight: bold;
-}
-
-.pinyin {
-  font-size: 1.2em;
-  color: #666;
-  margin: 5px 0;
-}
-
-.ipa {
-  opacity: 0.8;
-}
-
-.hyphenation {
-  font-size: 1em;
-  font-style: italic;
-  opacity: 0.7;
-}
-
-.pos, .etymology, .forms, .frequency {
-  margin: 8px 0;
-  font-size: 0.9em;
-  opacity: 0.85;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid;
-  margin: 15px 0;
-  opacity: 0.3;
-}'''
+            "css": ":root {\n  --link: #1666c0;\n}\n\n.nightMode, .night_mode {\n  --link: #6cf;\n}\n\n.card {\n    font-family: arial;\n    font-size: 10px;\n    text-align: center;\n}\n\n.hanzi {\n    font-family: SimSun;\n    font-size: 60px;\n}\n\n.pinyin {\n    font-family: Gentium Plus;\n    font-size: 22px;\n}\n\n.english {\n    font-family: Georgia;\n    font-size: 16px;\n}\n\n.sentence{\n    font-family: SimSun;\n    font-size: 24px;\n}\n\n.description{\n    font-family: Georgia;\n    font-size: 16px;\n    opacity: 0.65;\n}\n\n.horizontal-container {\n  display: flex;\n  gap: 2rem;\n  justify-content: center;\n}\n\n.vertical-column {\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n  align-items: center;\n}\n\n.big-button {\n  font-size: 1.5em;\n  cursor: pointer;\n  min-width: 4em;\n  min-height: 3em;\n  touch-action: manipulation;\n  -webkit-user-select: none;\n  -webkit-touch-callout: none;\n  user-select: none;\n  margin: 0pt;\n}\n\na {\n  color: var(--link);\n  text-decoration: none;\n}\n\na:hover {\n  text-decoration: underline;\n}\n.homograph {\n    font-family: Georgia;\n    font-size: 14px;\n    opacity: 0.55;\n}\n\n.examples {\n    font-family: SimSun;\n    font-size: 20px;\n    text-align: left;\n    display: inline-block;\n}\n\n.examples li { margin: 6px 0; }\n\n.vertical-column img {\n  max-width: 100%;\n  height: auto;\n  margin: 2px;\n}\n\n\n\n.drawbox {\n  border: 1px solid currentColor;\n  border-radius: 4px;\n  opacity: 0.9;\n}\n\n.en {\n  font-family: Georgia;\n  opacity: 0.6;\n}\n\n.more {\n  font-size: 0.82em;\n  opacity: 0.7;\n  margin-top: 4px;\n}\n\n.pinyinSen {\n  font-family: Gentium Plus;\n  font-size: 0.8em;\n  opacity: 0.7;\n}\n\n.etym {\n  font-family: Georgia;\n  font-size: 13px;\n  text-align: left;\n  max-width: 34em;\n  margin: 10px auto 0;\n  opacity: 0.75;\n}\n\n.etymItem { margin: 4px 0; }\n\n.etymTrad {\n  font-family: SimSun;\n  font-size: 22px;\n  float: right;\n  margin-left: 8px;\n  opacity: 0.5;\n}\n\n.example {\n  font-family: Georgia;\n  font-size: 15px;\n  opacity: 0.7;\n  margin-top: 6px;\n}\n\n.exPinyin { font-family: Gentium Plus; }\n\n.etymology, .etym { font-family: Georgia; font-size: 13px; text-align: left;\n  max-width: 34em; margin: 10px auto 0; opacity: 0.75; }\n.centre { text-align: center; }\n"
         }
     }
 
@@ -356,16 +324,28 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
     with open(csv_file, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
 
-        for i, row in enumerate(reader):
+        # Wiktionary lists a headword once per part of speech, so 中国 arrives twice.
+        have = available_svgs()
+        best = {}
+        for row in reader:
+            key = (row.get('Simplified', ''), row.get('Traditional', ''))
+            if not key[0]:
+                continue
+            if len(row.get('Definition', '')) > len(best.get(key, {}).get('Definition', '')):
+                best[key] = row
 
+        for i, ((simplified, traditional), row) in enumerate(best.items()):
+
+            # the Wiktionary headword
+            guid = guid_for("chinese-dict", traditional)
             note_id = int(time.time() * 1000) + i
             card_id = note_id + 1000000
 
-            front_word = row.get('Simplified', '')
-            stroke_order = generate_stroke_order(front_word)
+            front_word = simplified
+            stroke_order = generate_stroke_order(front_word, have)
             fields = '\x1f'.join([
                 front_word,
-                row.get('Traditional', ''),
+                traditional,
                 row.get('Pinyin', ''),
                 row.get('Definition', ''),
                 row.get('Part of Speech', ''),
@@ -374,9 +354,10 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
                 row.get('Etymology', ''),
                 row.get('Forms', ''),
                 row.get('Hyphenation', ''),
-                stroke_order,
                 row.get('Tags', ''),
-                row.get('Frequency', '')
+                row.get('Frequency', ''),
+                stroke_order,
+                row.get('GlyphOrigin', '')
             ])
 
             cursor.execute('''
@@ -384,7 +365,7 @@ def insert_cards_from_csv(cursor, csv_file, note_type_id, deck_id):
                 VALUES (?, ?, ?, ?, 0, '', ?, ?, 0, 0, '')
             ''', (
                 note_id,
-                f"note_{note_id}",
+                guid,
                 note_type_id,
                 int(time.time()),
                 fields,
