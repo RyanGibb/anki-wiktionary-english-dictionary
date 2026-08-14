@@ -3,3 +3,4 @@
 *.jsonl
 *.txt
 !swac-index.csv
+__pycache__/
