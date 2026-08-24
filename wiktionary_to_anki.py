@@ -97,6 +97,7 @@ def local_audio(simplified, pinyin):
 # from a variant like 伱.
 CEDICT = os.environ.get("CEDICT", "")
 SIMPLIFIED_OF = {}
+WRITTEN_SIMPLIFIED = set()
 if CEDICT and Path(CEDICT).exists():
     with open(CEDICT, encoding="utf-8") as fh:
         for line in fh:
@@ -105,7 +106,23 @@ if CEDICT and Path(CEDICT).exists():
             parts = line.split(" ", 2)
             if len(parts) > 2:
                 SIMPLIFIED_OF.setdefault(parts[0], parts[1])
+                WRITTEN_SIMPLIFIED.add(parts[1])
 
+
+def simplified_from_cedict(word):
+    """The simplified form for a headword kaikki does not give one for.
+
+    kaikki lists a Simplified-Chinese form for fewer headwords than it used to, and 還
+    is now among those it leaves bare, so the card would ask 還 rather than 还.
+
+    A word CC-CEDICT already writes as somebody's simplified form is left alone: 宁 is
+    the simplified 寧, and CC-CEDICT also carries it as the traditional of 㝉, so
+    following the mapping would answer a different word.
+    """
+    simplified = SIMPLIFIED_OF.get(word, "")
+    if not simplified or simplified == word or word in WRITTEN_SIMPLIFIED:
+        return ""
+    return simplified
 
 
 CJK = re.compile(r'^[一-鿿]$')
@@ -157,6 +174,33 @@ def format_etymology(etymology_text):
     etymology = re.sub(r'\n+', '<br>', etymology)
     return etymology.strip()
 
+def format_hyphenation(entry):
+    """The syllable break, joined the way Wiktionary prints it.
+
+    kaikki now gives the syllables apart under "hyphenations", where it used to give
+    the joined string under "hyphenation": dictionary arrives as ["dic", "tion", "a",
+    "ry"] rather than "dic‧tion‧a‧ry". Both are read so that a deck built
+    from either dump reads the same.
+    """
+    for shape in entry.get('hyphenations', []):
+        parts = shape.get('parts', []) if isinstance(shape, dict) else []
+        if parts:
+            return '‧'.join(parts)
+    return '‧'.join(entry.get('hyphenation', []))
+
+
+def reading_of(sound):
+    """The reading kaikki gives a sound, under either spelling of the key.
+
+    kaikki renamed zh-pron to zh_pron, and now hangs the numbered readings off the
+    tone-marked one rather than listing them apart: 這 arrives as
+    "zhèi (zhe⁴, zhei⁴)" where it used to arrive as zhèi, zhe⁴ and zhei⁴.
+    The deck asks in tone marks, so the bracket is dropped.
+    """
+    said = sound.get('zh_pron') or sound.get('zh-pron') or ''
+    return said.split('(')[0].strip()
+
+
 def extract_pinyin(sounds):
     """Extract pinyin from sounds data, preferring tone-marked over numbered"""
     if not sounds:
@@ -166,7 +210,7 @@ def extract_pinyin(sounds):
     numbered = []
 
     for sound in sounds:
-        zh_pron = sound.get('zh-pron', '')
+        zh_pron = reading_of(sound)
         tags = sound.get('tags', [])
 
         # Look for standard Mandarin pinyin
@@ -352,14 +396,14 @@ def process_entry(entry, cfg):
         'Audio': audio,
         'Etymology': etymology,
         'Forms': forms,
-        'Hyphenation': '-'.join(entry.get('hyphenation', [])),
+        'Hyphenation': format_hyphenation(entry),
         'Tags': f"wiktionary {pos}" if pos else "wiktionary",
         'Frequency': '',
     }
 
     if cfg['lang'] == 'Chinese':
         # Use simplified form if available, otherwise use original word
-        simplified_form = get_simplified_form(forms_data)
+        simplified_form = get_simplified_form(forms_data) or simplified_from_cedict(word)
         card.update({
             'Simplified': simplified_form if simplified_form else word,
             'Traditional': word,
