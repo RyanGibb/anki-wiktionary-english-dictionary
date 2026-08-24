@@ -9,6 +9,35 @@ from pathlib import Path
 from urllib.parse import urlparse
 import argparse
 
+# The columns each deck's notetype expects, in create_anki_package.py's order. Only
+# Chinese has a script to explain, so pinyin, the simplified form and the per-character
+# glyph origin have no English counterpart; English takes its audio from Wiktionary
+# rather than from audio-cmn, which records Mandarin only.
+LANGUAGES = {
+    "chinese": {
+        "lang": "Chinese",
+        "front": "Simplified",
+        "body": "Definition",
+        # The ngram list is English, and ranks only a sixth of the Chinese headwords.
+        # Keeping the rest is what makes the deck a dictionary rather than a word list.
+        "ranked_only": False,
+        "fields": ['Simplified', 'Traditional', 'Pinyin', 'Definition', 'Part of Speech',
+                   'IPA', 'Audio', 'Etymology', 'Forms', 'Hyphenation', 'Tags',
+                   'Frequency', 'Headword', 'GlyphOrigin'],
+    },
+    "english": {
+        "lang": "English",
+        "front": "Front",
+        "body": "Back",
+        # A word the ngram list never ranked is one Google's books never printed, which
+        # for English is a good enough sign that it is not worth a card.
+        "ranked_only": True,
+        "fields": ['Front', 'Back', 'Part of Speech', 'IPA', 'Audio', 'Etymology',
+                   'Forms', 'Hyphenation', 'Tags', 'Frequency'],
+    },
+}
+
+
 def load_frequency_data_for_words(word_set, frequency_file="frequency-all.txt"):
     frequency_dict = {}
     try:
@@ -78,6 +107,7 @@ if CEDICT and Path(CEDICT).exists():
                 SIMPLIFIED_OF.setdefault(parts[0], parts[1])
 
 
+
 CJK = re.compile(r'^[一-鿿]$')
 BULLET = re.compile(r'^[*#]+\s*')
 GLYPH = {}
@@ -131,14 +161,14 @@ def extract_pinyin(sounds):
     """Extract pinyin from sounds data, preferring tone-marked over numbered"""
     if not sounds:
         return ""
-    
+
     tone_marked = []
     numbered = []
-    
+
     for sound in sounds:
         zh_pron = sound.get('zh-pron', '')
         tags = sound.get('tags', [])
-        
+
         # Look for standard Mandarin pinyin
         if zh_pron and 'Mandarin' in tags and 'Pinyin' in tags:
             # Check if it contains tone marks (āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ)
@@ -283,17 +313,18 @@ def is_english_word(word):
         return True
     return False
 
-def process_entry(entry):
+def process_entry(entry, cfg):
     word = entry.get('word', '')
     if not word:
         return None
 
     lang = entry.get('lang', '')
-    if lang != 'Chinese':
+    if lang != cfg['lang']:
         return None
 
-    # Filter out English words used in Chinese
-    if is_english_word(word):
+    # Filter out English words used in Chinese. The English deck is those words, so the
+    # filter would reject every entry it was given.
+    if cfg['lang'] == 'Chinese' and is_english_word(word):
         return None
 
     pos = entry.get('pos', '')
@@ -308,67 +339,73 @@ def process_entry(entry):
             return None
     sounds = entry.get('sounds', [])
     ipa, audio = format_pronunciation(sounds)
-    pinyin = extract_pinyin(sounds)
 
     etymology = format_etymology(entry.get('etymology_text', ''))
 
     forms_data = entry.get('forms', [])
     forms = format_forms(forms_data)
 
-    # Use simplified form if available, otherwise use original word
-    simplified_form = get_simplified_form(forms_data)
-    front_word = simplified_form if simplified_form else word
-
-    translations = ""
-
-    hyphenation = entry.get('hyphenation', [])
-    hyphen_text = '-'.join(hyphenation) if hyphenation else ""
-
-    return {
-        'Simplified': front_word,
-        'Traditional': word,
-        'Pinyin': pinyin,
-        'Definition': definitions,
+    card = {
+        cfg['body']: definitions,
         'Part of Speech': pos,
         'IPA': ipa,
         'Audio': audio,
         'Etymology': etymology,
         'Forms': forms,
-        'Hyphenation': hyphen_text,
+        'Hyphenation': '-'.join(entry.get('hyphenation', [])),
         'Tags': f"wiktionary {pos}" if pos else "wiktionary",
         'Frequency': '',
-        'Headword': word,
-        'GlyphOrigin': ''
     }
 
-def combine_entries(entries_dict):
+    if cfg['lang'] == 'Chinese':
+        # Use simplified form if available, otherwise use original word
+        simplified_form = get_simplified_form(forms_data)
+        card.update({
+            'Simplified': simplified_form if simplified_form else word,
+            'Traditional': word,
+            'Pinyin': extract_pinyin(sounds),
+            'Headword': word,
+            'GlyphOrigin': '',
+        })
+    else:
+        card['Front'] = word
+
+    return card
+
+def combine_entries(entries_dict, cfg):
     combined_cards = {}
+    body = cfg['body']
 
     for word, entries in entries_dict.items():
         if not entries:
             continue
 
         first_entry = entries[0]
-        combined = {
-            'Simplified': first_entry.get('Simplified', word),
-            'Traditional': first_entry.get('Traditional', word),
-            'Pinyin': first_entry.get('Pinyin', ''),
-            'Definition': '',
-            'Part of Speech': '',
+        combined = dict.fromkeys(cfg['fields'], '')
+        combined.update({
             'IPA': first_entry.get('IPA', ''),
-            'Audio': (local_audio(first_entry.get('Simplified', word),
-                                  first_entry.get('Pinyin', ''))
-                      or first_entry.get('Audio', '')),
+            'Audio': first_entry.get('Audio', ''),
             'Etymology': max((e.get('Etymology', '') for e in entries), key=len),
-            'Forms': '',
             'Hyphenation': first_entry.get('Hyphenation', ''),
             'Tags': 'wiktionary',
             'Frequency': '',
-            'Headword': first_entry.get('Headword', word),
-            'GlyphOrigin': glyph_origin_for(
-                first_entry.get('Simplified', word),
-                first_entry.get('Traditional', word)),
-        }
+        })
+
+        if cfg['lang'] == 'Chinese':
+            combined.update({
+                'Simplified': first_entry.get('Simplified', word),
+                'Traditional': first_entry.get('Traditional', word),
+                'Pinyin': first_entry.get('Pinyin', ''),
+                'Audio': (local_audio(first_entry.get('Simplified', word),
+                                      first_entry.get('Pinyin', ''))
+                          or first_entry.get('Audio', '')),
+                'Headword': first_entry.get('Headword', word),
+                'GlyphOrigin': glyph_origin_for(
+                    first_entry.get('Simplified', word),
+                    first_entry.get('Traditional', word)),
+            })
+        else:
+            combined['Front'] = first_entry.get('Front', word)
 
         pos_definitions = {}
         all_pos = []
@@ -376,7 +413,7 @@ def combine_entries(entries_dict):
 
         for entry in entries:
             pos = entry.get('Part of Speech', 'Unknown')
-            back = entry.get('Definition', '')
+            back = entry.get(body, '')
             forms = entry.get('Forms', '')
 
             if pos and pos not in all_pos:
@@ -396,7 +433,7 @@ def combine_entries(entries_dict):
             if pos in pos_definitions:
                 combined_back.append(f"<strong>{pos}:</strong><br>{pos_definitions[pos]}")
 
-        combined['Definition'] = '<br><br>'.join(combined_back)
+        combined[body] = '<br><br>'.join(combined_back)
         combined['Part of Speech'] = ', '.join(all_pos)
         combined['Forms'] = '; '.join(all_forms)
         combined['Tags'] = f"wiktionary {' '.join(all_pos)}"
@@ -408,9 +445,14 @@ def combine_entries(entries_dict):
 def main():
     parser = argparse.ArgumentParser(description='Convert Wiktionary JSONL to Anki CSV')
     parser.add_argument('input_file', help='Input JSONL file from kaikki.org')
-    parser.add_argument('-o', '--output', default='chinese.csv',
-                       help='Output CSV file for Anki import')
-    parser.add_argument('-l', '--limit', type=int,
+    parser.add_argument('-o', '--output',
+                       help='Output CSV file for Anki import (default <language>.csv)')
+    # -l is --language here as it is in create_anki_package.py, so that the two halves
+    # of a build are not spelled differently.
+    parser.add_argument('-l', '--language', default='chinese',
+                       choices=sorted(LANGUAGES),
+                       help='Which deck to build the CSV for')
+    parser.add_argument('--limit', type=int,
                        help='Limit number of entries to process (for testing)')
     parser.add_argument('--min-def-length', type=int, default=0,
                        help='Minimum definition length to include')
@@ -422,19 +464,17 @@ def main():
         print(f"Error: Input file {args.input_file} not found")
         return 1
 
-    output_path = Path(args.output)
+    cfg = LANGUAGES[args.language]
+    output_path = Path(args.output or f"{args.language}.csv")
 
-    fieldnames = [
-        'Simplified', 'Traditional', 'Pinyin', 'Definition', 'Part of Speech', 'IPA', 'Audio',
-        'Etymology', 'Forms', 'Hyphenation', 'Tags', 'Frequency', 'Headword', 'GlyphOrigin'
-    ]
+    fieldnames = cfg['fields']
     processed_count = 0
     entries_by_word = {}
     redirect_map = {}
     pending_redirects = {}  # word -> list of redirect sources
 
-    print(f"Processing {args.input_file}...")
-    print(f"Output will be written to {args.output}")
+    print(f"Processing {args.input_file} as {args.language}...")
+    print(f"Output will be written to {output_path}")
 
     with open(input_path, 'r', encoding='utf-8') as infile:
         for line_num, line in enumerate(infile, 1):
@@ -452,7 +492,8 @@ def main():
                 if not word:
                     continue
 
-                note_glyph_origin(entry)
+                if cfg['lang'] == 'Chinese':
+                    note_glyph_origin(entry)
 
                 # Handle redirects
                 if entry.get('pos') == 'soft-redirect':
@@ -467,7 +508,7 @@ def main():
                     continue
 
                 # Process regular entry
-                card_data = process_entry(entry)
+                card_data = process_entry(entry, cfg)
                 if card_data:
                     # Add the main entry
                     if word not in entries_by_word:
@@ -478,7 +519,7 @@ def main():
                     # carry no forms at all -- 這 has none -- so the simplified is only
                     # knowable from the redirect. Fill it in here rather than emitting a
                     # second row, which is one word arriving as both 這/這 and 这/這.
-                    if card_data['Simplified'] == word:
+                    if cfg['lang'] == 'Chinese' and card_data['Simplified'] == word:
                         simp = SIMPLIFIED_OF.get(word, word)
                         if simp in pending_redirects.get(word, []):
                             card_data['Simplified'] = simp
@@ -493,25 +534,30 @@ def main():
                 continue
 
     print("Combining entries by word...")
-    combined_cards = combine_entries(entries_by_word)
+    combined_cards = combine_entries(entries_by_word, cfg)
+
+    # ranked on the form the deck asks in: the simplified 这, not the traditional 這
+    front = cfg['front']
 
     print("Loading frequency data for found words...")
     frequency_dict = load_frequency_data_for_words(
-        set(combined_cards) | {c.get('Simplified', '') for c in combined_cards.values()})
+        set(combined_cards) | {c.get(front, '') for c in combined_cards.values()})
 
     print("Adding frequency data...")
     for word, card_data in combined_cards.items():
-        card_data['Frequency'] = (get_frequency_rank(card_data.get('Simplified', ''),
+        card_data['Frequency'] = (get_frequency_rank(card_data.get(front, ''),
                                                      frequency_dict)
                                   or get_frequency_rank(word, frequency_dict))
 
     print("Sorting by frequency...")
     sorted_cards = []
     for word, card_data in combined_cards.items():
-        if len(card_data['Definition']) >= args.min_def_length:
-            # ranked first, the rest after -- not dropped
-            freq = (frequency_dict.get(card_data.get('Simplified', ''))
+        if len(card_data[cfg['body']]) >= args.min_def_length:
+            # ranked first, the rest after -- not dropped, unless the language says so
+            freq = (frequency_dict.get(card_data.get(front, ''))
                     or frequency_dict.get(word.lower()))
+            if freq is None and cfg['ranked_only']:
+                continue
             sorted_cards.append((freq if freq is not None else 10 ** 9, word, card_data))
     sorted_cards.sort(key=lambda x: x[0])
     max_cards = 1000000
